@@ -5,7 +5,13 @@ import { getUserFromRequest } from "@/lib/auth";
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = getUserFromRequest(req);
-    if (!user || user.level !== "up2k_kelompok") {
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const isAdmin = user.level === "admin" || user.level === "up2k_admin" || user.level === "superadmin";
+
+    if (user.level !== "up2k_kelompok" && !isAdmin) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -15,8 +21,12 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const { nama_peminjam, keperluan_usaha, tanggal_pinjam, jumlah_pinjaman, lama_angsuran, jasa } = body;
 
     const existing = await prisma.pinjaman.findUnique({ where: { id } });
-    if (!existing || existing.kelompokId !== user.kelompokId) {
-      return NextResponse.json({ error: "Not Found or Unauthorized" }, { status: 404 });
+    if (!existing) {
+      return NextResponse.json({ error: "Not Found" }, { status: 404 });
+    }
+
+    if (!isAdmin && existing.kelompokId !== user.kelompokId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await prisma.pinjaman.update({
@@ -40,7 +50,13 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = getUserFromRequest(req);
-    if (!user || user.level !== "up2k_kelompok") {
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const isAdmin = user.level === "admin" || user.level === "up2k_admin" || user.level === "superadmin";
+
+    if (user.level !== "up2k_kelompok" && !isAdmin) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -48,8 +64,12 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     const id = parseInt(resolvedParams.id);
 
     const existing = await prisma.pinjaman.findUnique({ where: { id } });
-    if (!existing || existing.kelompokId !== user.kelompokId) {
-      return NextResponse.json({ error: "Not Found or Unauthorized" }, { status: 404 });
+    if (!existing) {
+      return NextResponse.json({ error: "Not Found" }, { status: 404 });
+    }
+
+    if (!isAdmin && existing.kelompokId !== user.kelompokId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Angsuran will be deleted automatically due to Cascade
@@ -60,3 +80,4 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+

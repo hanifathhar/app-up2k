@@ -26,7 +26,13 @@ async function recalculateSaldo(kelompokId: number) {
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = getUserFromRequest(req);
-    if (!user || user.level !== "up2k_kelompok") {
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const isAdmin = user.level === "admin" || user.level === "up2k_admin" || user.level === "superadmin";
+
+    if (user.level !== "up2k_kelompok" && !isAdmin) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -36,8 +42,12 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const { tanggal, uraian, jenis, jumlah } = body;
 
     const existingBku = await prisma.bukuKasUmum.findUnique({ where: { id } });
-    if (!existingBku || existingBku.kelompokId !== user.kelompokId) {
-      return NextResponse.json({ error: "Not Found or Unauthorized" }, { status: 404 });
+    if (!existingBku) {
+      return NextResponse.json({ error: "Not Found" }, { status: 404 });
+    }
+
+    if (!isAdmin && existingBku.kelompokId !== user.kelompokId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await prisma.bukuKasUmum.update({
@@ -51,7 +61,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     });
 
     // Recalculate balances
-    await recalculateSaldo(user.kelompokId!);
+    await recalculateSaldo(existingBku.kelompokId!);
 
     return NextResponse.json({ message: "Updated successfully" });
   } catch (error: any) {
@@ -62,7 +72,13 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = getUserFromRequest(req);
-    if (!user || user.level !== "up2k_kelompok") {
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const isAdmin = user.level === "admin" || user.level === "up2k_admin" || user.level === "superadmin";
+
+    if (user.level !== "up2k_kelompok" && !isAdmin) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -70,17 +86,22 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     const id = parseInt(resolvedParams.id);
 
     const existingBku = await prisma.bukuKasUmum.findUnique({ where: { id } });
-    if (!existingBku || existingBku.kelompokId !== user.kelompokId) {
-      return NextResponse.json({ error: "Not Found or Unauthorized" }, { status: 404 });
+    if (!existingBku) {
+      return NextResponse.json({ error: "Not Found" }, { status: 404 });
+    }
+
+    if (!isAdmin && existingBku.kelompokId !== user.kelompokId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await prisma.bukuKasUmum.delete({ where: { id } });
 
     // Recalculate balances
-    await recalculateSaldo(user.kelompokId!);
+    await recalculateSaldo(existingBku.kelompokId!);
 
     return NextResponse.json({ message: "Deleted successfully" });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+

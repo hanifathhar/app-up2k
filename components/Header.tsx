@@ -16,6 +16,9 @@ export default function Header({
     no_tlp?: string;
     username?: string;
     level?: string;
+    kelompok?: {
+      nama_kelompok: string;
+    } | null;
   } | null;
   onMenuClick: () => void;
   onLogout: () => void;
@@ -39,7 +42,7 @@ export default function Header({
 
           <div>
             <h1 className="font-bold text-xl text-red-700">
-              Aplikasi UP2K
+              {user?.level === 'admin' ? 'Aplikasi UP2K' : user?.kelompok?.nama_kelompok || user?.nama || 'Aplikasi UP2K'}
             </h1>
 
             <p className="text-xs text-gray-500 hidden md:block">
@@ -50,7 +53,7 @@ export default function Header({
 
         {/* Tengah */}
         <div className="hidden lg:block text-center">
-          
+
         </div>
 
         {/* Kanan */}
@@ -62,10 +65,6 @@ export default function Header({
             <div className="text-right hidden sm:block">
               <p className="text-sm font-semibold text-gray-800">
                 {user?.nama}
-              </p>
-
-              <p className="text-xs text-red-600">
-                {user?.level}
               </p>
             </div>
 
@@ -89,10 +88,6 @@ export default function Header({
                     <h3 className="font-semibold text-lg">
                       {user?.nama}
                     </h3>
-
-                    <p className="text-red-100 text-sm">
-                      {user?.level}
-                    </p>
                   </div>
                 </div>
               </div>
@@ -120,7 +115,7 @@ export default function Header({
                   <span>Profil Saya</span>
                 </button>
 
-              
+
                 <hr />
 
                 {/* Logout */}

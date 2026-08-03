@@ -45,6 +45,12 @@ export async function GET(req: Request) {
         no_tlp: true,
         username: true,
         level: true,
+        kelompok: {
+          select: {
+            id: true,
+            nama_kelompok: true
+          }
+        }
       },
     });
 
