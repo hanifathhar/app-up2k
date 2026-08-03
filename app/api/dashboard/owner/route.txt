@@ -1,0 +1,838 @@
+import { NextResponse,NextRequest } from "next/server";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+const API_KEY = process.env.API_KEY || "";
+
+
+function validateApiKey(req: Request) {
+  const apiKey = req.headers.get("x-api-key");
+
+  if (!apiKey || apiKey !== API_KEY) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Unauthorized - Invalid API Key",
+      },
+      {
+        status: 401,
+      }
+    );
+  }
+
+  return null;
+}
+
+
+
+// ================================
+// GET DASHBOARD
+// ================================
+
+export async function GET(
+  req: NextRequest
+) {
+
+  const apiKeyValidation = validateApiKey(req);
+  if (apiKeyValidation) return apiKeyValidation;
+
+
+  try {
+
+
+    const { searchParams } = new URL(
+      req.url
+    );
+
+
+    const bulan =
+      Number(
+        searchParams.get("bulan")
+      ) ||
+      new Date().getMonth() + 1;
+
+
+    const tahun =
+      Number(
+        searchParams.get("tahun")
+      ) ||
+      new Date().getFullYear();
+
+
+
+    // ============================
+    // RANGE TANGGAL
+    // ============================
+
+
+    const tanggalAwal =
+      new Date(
+        tahun,
+        bulan - 1,
+        1
+      );
+
+
+    const tanggalAkhir =
+      new Date(
+        tahun,
+        bulan,
+        0,
+        23,
+        59,
+        59
+      );
+
+
+
+    // ============================
+    // RANGE HARI INI
+    // ============================
+
+
+    const sekarang =
+      new Date();
+
+
+    const awalHari =
+      new Date(
+        sekarang.getFullYear(),
+        sekarang.getMonth(),
+        sekarang.getDate()
+      );
+
+
+    const akhirHari =
+      new Date(
+        sekarang.getFullYear(),
+        sekarang.getMonth(),
+        sekarang.getDate(),
+        23,
+        59,
+        59
+      );
+
+
+
+
+
+    // ============================
+    // SUMMARY DASHBOARD
+    // ============================
+
+
+    const [
+
+      todaySales,
+      todayTransactions,
+      totalProducts,
+      totalCustomers,
+
+
+    ] = await Promise.all([
+
+
+
+      prisma.penjualan.aggregate({
+
+        _sum:{
+          grand_total:true,
+        },
+
+
+        where:{
+          tgl_penjualan:{
+            gte: awalHari,
+            lte: akhirHari,
+          }
+        }
+
+      }),
+
+
+
+
+
+      prisma.penjualan.count({
+
+        where:{
+          tgl_penjualan:{
+            gte: awalHari,
+            lte: akhirHari,
+          }
+        }
+
+      }),
+
+
+
+      prisma.barang.count(),
+      prisma.pelanggan.count(),
+
+    ]);
+
+
+
+
+
+    // ============================
+    // TRANSAKSI TERBARU
+    // ============================
+
+
+    const recentTransactions =
+      await prisma.penjualan.findMany({
+
+        take:10,
+
+
+        orderBy:{
+          tgl_penjualan:"desc",
+        },
+
+
+        include:{
+
+
+          pelanggan:{
+            select:{
+              nm_pelanggan:true,
+            }
+          },
+
+
+          kasir:{
+            select:{
+              nama:true,
+            }
+          },
+
+
+        }
+
+      });
+
+    // ============================
+// PENJUALAN PER BULAN
+// ============================
+
+
+  const monthlySalesRaw =
+  await prisma.penjualan.findMany({
+
+    where:{
+
+      tgl_penjualan:{
+        gte:tanggalAwal,
+        lte:tanggalAkhir,
+      }
+
+    },
+
+
+    select:{
+
+      tgl_penjualan:true,
+
+      grand_total:true,
+
+    },
+
+
+    orderBy:{
+
+      tgl_penjualan:"asc"
+
+    }
+
+  });
+
+
+  // ============================
+// PENJUALAN BERDASARKAN
+// JENIS PEMBAYARAN
+// ============================
+
+const paymentMethodRaw =
+  await prisma.penjualan.groupBy({
+
+    by: ["pembayaran"],
+
+    where: {
+      tgl_penjualan: {
+        gte: tanggalAwal,
+        lte: tanggalAkhir,
+      },
+    },
+
+    _count: {
+      _all: true,
+    },
+
+    _sum: {
+      grand_total: true,
+    },
+
+  });
+
+
+// Selalu tampilkan semua metode pembayaran
+const paymentMethods = [
+  "Tunai",
+  "QRIS",
+  "Transfer",
+];
+
+const paymentSales = paymentMethods.map((method) => {
+
+  const data = paymentMethodRaw.find(
+    (item) => item.pembayaran === method
+  );
+
+  return {
+    jenis: method,
+    transaksi: data?._count._all ?? 0,
+    total: Number(data?._sum.grand_total ?? 0),
+  };
+});
+
+
+
+// Format menjadi 12 bulan
+
+const monthlySales = Array.from(
+  {
+    length: 12
+  },
+  (_, index)=>{
+
+    const bulanIndex =
+      index + 1;
+
+
+    const data =
+      monthlySalesRaw.filter(
+        item =>
+          item.tgl_penjualan.getMonth()+1
+          === bulanIndex
+      );
+
+
+    const total =
+    data.reduce(
+        (sum,item)=>
+        sum +
+        Number(
+            item.grand_total ?? 0
+        ),
+        0
+    );
+
+
+    return {
+
+      bulan:
+        new Date(
+          2026,
+          index
+        )
+        .toLocaleString(
+          "id-ID",
+          {
+            month:"short"
+          }
+        ),
+
+      total,
+
+    };
+
+
+  }
+);
+
+
+
+
+// ============================
+// DISTRIBUSI KATEGORI
+// ============================
+
+
+const categorySales =
+  await prisma.detailPenjualan.findMany({
+
+    where:{
+
+      penjualan:{
+
+        tgl_penjualan:{
+          gte:tanggalAwal,
+          lte:tanggalAkhir,
+        }
+
+      }
+
+    },
+
+
+    include:{
+
+      Barang:{
+
+        include:{
+
+          kategori:true
+
+        }
+
+      }
+
+
+    }
+
+
+  });
+
+
+
+const categoryMap =
+  new Map<
+    string,
+    number
+  >();
+
+
+
+categorySales.forEach(item=>{
+
+
+  const kategori =
+    item.Barang
+      ?.kategori
+      ?.nm_kategori
+      ??
+      "Tanpa Kategori";
+
+
+
+  const total =
+    Number(
+      item.subtotal
+    );
+
+
+
+  categoryMap.set(
+
+    kategori,
+
+    (
+      categoryMap.get(kategori)
+      ??
+      0
+    )
+    +
+    total
+
+  );
+
+
+});
+
+
+
+const salesCategory =
+Array.from(
+  categoryMap.entries()
+)
+.map(
+  ([nama,total])=>({
+
+    nama,
+    total
+
+  })
+)
+.sort(
+  (a,b)=>
+    b.total-a.total
+);
+
+
+
+
+
+// ============================
+// BARANG TERLARIS
+// ============================
+
+
+const bestProductsRaw =
+await prisma.detailPenjualan.groupBy({
+
+  by:[
+    "kd_barang"
+  ],
+
+
+  where:{
+
+    penjualan:{
+
+      tgl_penjualan:{
+        gte:tanggalAwal,
+        lte:tanggalAkhir,
+      }
+
+    }
+
+  },
+
+
+  _sum:{
+    jumlah:true,
+  },
+
+
+  orderBy:{
+
+    _sum:{
+      jumlah:"desc"
+    }
+
+  },
+
+
+  take:10
+
+});
+
+
+
+
+
+const bestProducts =
+await Promise.all(
+
+bestProductsRaw.map(
+async item=>{
+
+
+  const barang =
+    await prisma.barang.findUnique({
+
+      where:{
+        kd_barang:item.kd_barang
+      },
+
+      select:{
+
+        kd_barang:true,
+
+        nm_barang:true,
+
+        foto:true,
+
+      }
+
+    });
+
+
+
+return {
+
+
+  kd_barang:
+    item.kd_barang,
+
+
+  nama:
+    barang?.nm_barang
+    ??
+    "-",
+
+
+  qty:
+    item._sum.jumlah
+    ??
+    0,
+
+
+  foto:
+    barang?.foto
+    ??
+    null,
+
+
+};
+
+
+
+})
+
+);
+
+
+
+// ============================
+// BARANG KURANG LARIS
+// ============================
+
+
+const slowProductsRaw =
+await prisma.detailPenjualan.groupBy({
+
+  by:[
+    "kd_barang"
+  ],
+
+
+  where:{
+
+    penjualan:{
+
+      tgl_penjualan:{
+        gte:tanggalAwal,
+        lte:tanggalAkhir,
+      }
+
+    }
+
+  },
+
+
+  _sum:{
+
+    jumlah:true,
+
+  },
+
+
+  orderBy:{
+
+    _sum:{
+      jumlah:"asc"
+    }
+
+  },
+
+
+  take:10
+
+});
+
+
+
+const slowProducts =
+await Promise.all(
+
+slowProductsRaw.map(
+async item=>{
+
+
+ const barang =
+ await prisma.barang.findUnique({
+
+   where:{
+     kd_barang:item.kd_barang
+   },
+
+   select:{
+
+     kd_barang:true,
+
+     nm_barang:true,
+
+     foto:true,
+
+   }
+
+ });
+
+
+
+ return {
+
+   kd_barang:
+    item.kd_barang,
+
+   nama:
+    barang?.nm_barang
+    ??
+    "-",
+
+   qty:
+    item._sum.jumlah
+    ??
+    0,
+
+   foto:
+    barang?.foto
+    ??
+    null,
+
+ };
+
+}
+
+)
+
+);
+
+
+
+
+// ============================
+// KONDISI KAS
+// AKUN 1110 = KAS
+// ============================
+
+
+const akunKas = "1110";
+
+
+
+// Ambil mutasi jurnal akun kas
+
+const cashMutation =
+await prisma.detailJurnal.aggregate({
+
+  _sum: {
+
+    debit:true,
+
+    kredit:true,
+
+  },
+
+
+  where: {
+
+    kode_akun: akunKas,
+
+
+    jurnal: {
+
+      tanggal: {
+
+        gte:tanggalAwal,
+
+        lte:tanggalAkhir,
+
+      }
+
+    }
+
+  }
+
+});
+
+
+
+const kasMasuk =
+Number(
+  cashMutation
+    ._sum
+    .debit
+    ??
+    0
+);
+
+
+
+const kasKeluar =
+Number(
+  cashMutation
+    ._sum
+    .kredit
+    ??
+    0
+);
+
+
+
+const saldoKas =
+kasMasuk -
+kasKeluar;
+
+
+
+    // ============================
+    // FORMAT RESPONSE
+    // ============================
+
+
+    return NextResponse.json({
+
+    periode:{
+        bulan,
+        tahun,
+    },
+
+
+    summary:{
+
+        todaySales:
+        Number(
+            todaySales._sum.grand_total ?? 0
+        ),
+
+        todayTransactions,
+        totalProducts,
+        totalCustomers,
+
+
+    },
+
+    cash:{
+
+        masuk:
+        kasMasuk,
+        keluar:
+        kasKeluar,
+        saldo:
+        saldoKas,
+
+
+    },
+
+    monthlySales,
+    paymentSales,
+    salesCategory,
+    bestProducts,
+    slowProducts,
+    recentTransactions,
+
+    });
+
+
+
+  }
+  catch(error){
+
+
+    console.error(
+      "Dashboard Error:",
+      error
+    );
+
+
+    return NextResponse.json(
+
+      {
+        message:
+          "Terjadi kesalahan server",
+      },
+
+      {
+        status:500,
+      }
+
+    );
+
+
+  }
+
+
+}

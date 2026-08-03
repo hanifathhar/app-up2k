@@ -1,0 +1,340 @@
+import { NextResponse } from "next/server";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+const API_KEY = process.env.API_KEY || "";
+
+
+function validateApiKey(req: Request) {
+  const apiKey = req.headers.get("x-api-key");
+
+  if (!apiKey || apiKey !== API_KEY) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Unauthorized - Invalid API Key",
+      },
+      {
+        status: 401,
+      }
+    );
+  }
+
+  return null;
+}
+
+export async function GET(req: Request) {
+  const apiKeyValidation = validateApiKey(req);
+  if (apiKeyValidation) return apiKeyValidation;
+
+  try {
+    // ==========================
+    // TANGGAL
+    // ==========================
+    const now = new Date();
+
+    const today = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    );
+
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
+    const startMonth = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      1
+    );
+
+    const endMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      1
+    );
+
+    // ==========================
+    // QUERY PARALEL
+    // ==========================
+    const [
+      todaySales,
+      monthSales,
+      todayTransactions,
+      monthTransactions,
+      totalProducts,
+      totalCustomers,
+      totalStock,
+      lowStock,
+      bestProductsRaw,
+      recentTransactions,
+      monthlySalesRaw,
+      paymentStats,
+    ] = await Promise.all([
+      //-----------------------------------
+      // Pendapatan Hari Ini
+      //-----------------------------------
+      prisma.penjualan.aggregate({
+        where: {
+          tgl_penjualan: {
+            gte: today,
+            lt: tomorrow,
+          },
+        },
+        _sum: {
+          grand_total: true,
+        },
+      }),
+
+      //-----------------------------------
+      // Pendapatan Bulan Ini
+      //-----------------------------------
+      prisma.penjualan.aggregate({
+        where: {
+          tgl_penjualan: {
+            gte: startMonth,
+            lt: endMonth,
+          },
+        },
+        _sum: {
+          grand_total: true,
+        },
+      }),
+
+      //-----------------------------------
+      // Transaksi Hari Ini
+      //-----------------------------------
+      prisma.penjualan.count({
+        where: {
+          tgl_penjualan: {
+            gte: today,
+            lt: tomorrow,
+          },
+        },
+      }),
+
+      //-----------------------------------
+      // Transaksi Bulan Ini
+      //-----------------------------------
+      prisma.penjualan.count({
+        where: {
+          tgl_penjualan: {
+            gte: startMonth,
+            lt: endMonth,
+          },
+        },
+      }),
+
+      //-----------------------------------
+      // Total Produk
+      //-----------------------------------
+      prisma.barang.count(),
+
+      //-----------------------------------
+      // Total Pelanggan
+      //-----------------------------------
+      prisma.pelanggan.count(),
+
+      //-----------------------------------
+      // Total Stok
+      //-----------------------------------
+      prisma.barang.aggregate({
+        _sum: {
+          stock: true,
+        },
+      }),
+
+      //-----------------------------------
+      // Stok Hampir Habis
+      //-----------------------------------
+      prisma.barang.findMany({
+        where: {
+          stock: {
+            lte: 5,
+          },
+        },
+        orderBy: {
+          stock: "asc",
+        },
+        take: 10,
+        select: {
+          kd_barang: true,
+          nm_barang: true,
+          stock: true,
+          foto:true,
+        },
+      }),
+
+      
+
+      //-----------------------------------
+      // Barang Terlaris
+      //-----------------------------------
+      prisma.detailPenjualan.groupBy({
+        by: ["kd_barang"],
+        _sum: {
+          jumlah: true,
+        },
+        orderBy: {
+          _sum: {
+            jumlah: "desc",
+          },
+        },
+        take: 10,
+      }),
+
+      //-----------------------------------
+      // Transaksi Terbaru
+      //-----------------------------------
+      prisma.penjualan.findMany({
+        orderBy: {
+          tgl_penjualan: "desc",
+        },
+        take: 10,
+        include: {
+          pelanggan: true,
+          kasir: true,
+        },
+      }),
+
+      //-----------------------------------
+      // Grafik 12 Bulan
+      //-----------------------------------
+      prisma.penjualan.findMany({
+        select: {
+          tgl_penjualan: true,
+          grand_total: true,
+        },
+      }),
+
+      //-----------------------------------
+      // Statistik Pembayaran
+      //-----------------------------------
+      prisma.penjualan.groupBy({
+        by: ["pembayaran"],
+        _count: true,
+      }),
+    ]);
+
+    // =====================================================
+    // Ambil Nama Barang Terlaris
+    // =====================================================
+    const productIds = bestProductsRaw.map((x) => x.kd_barang);
+
+    const products = await prisma.barang.findMany({
+      where: {
+        kd_barang: {
+          in: productIds,
+        },
+      },
+      select: {
+        kd_barang: true,
+        nm_barang: true,
+        foto: true,
+      },
+    });
+
+    const bestProducts = bestProductsRaw.map((item) => {
+      const barang = products.find(
+        (b) => b.kd_barang === item.kd_barang
+      );
+
+      return {
+        kd_barang: item.kd_barang,
+        nama: barang?.nm_barang ?? "-",
+        foto: barang?.foto,
+        qty: item._sum.jumlah ?? 0,
+      };
+    });
+
+    // =====================================================
+    // Grafik Bulanan
+    // =====================================================
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "Mei",
+      "Jun",
+      "Jul",
+      "Agu",
+      "Sep",
+      "Okt",
+      "Nov",
+      "Des",
+    ];
+
+    const monthlySales = months.map((bulan, index) => {
+      const total = monthlySalesRaw
+        .filter(
+          (item) =>
+            new Date(item.tgl_penjualan).getMonth() === index
+        )
+        .reduce(
+          (sum, item) =>
+            sum + Number(item.grand_total),
+          0
+        );
+
+      return {
+        bulan,
+        total,
+      };
+    });
+
+    console.log("LOW STOCK:", lowStock);
+
+    // =====================================================
+    // RESPONSE
+    // =====================================================
+    return NextResponse.json({
+      success: true,
+
+      summary: {
+        todaySales:
+          Number(todaySales._sum.grand_total ?? 0),
+
+        monthSales:
+          Number(monthSales._sum.grand_total ?? 0),
+
+        todayTransactions,
+
+        monthTransactions,
+
+        totalProducts,
+
+        totalCustomers,
+
+        totalStock:
+          totalStock._sum.stock ?? 0,
+      },
+
+      monthlySales,
+
+      bestProducts,
+
+      lowStock,
+
+      paymentStats,
+
+      recentTransactions,
+    });
+  } catch (error) {
+  console.error("================================");
+  console.error(error);
+  console.error("================================");
+
+  if (error instanceof Error) {
+    console.error(error.stack);
+  }
+
+  return NextResponse.json(
+    {
+      success: false,
+      message: error instanceof Error ? error.message : String(error),
+    },
+    { status: 500 }
+  );
+}
+}
