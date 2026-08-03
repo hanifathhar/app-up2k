@@ -13,6 +13,7 @@ import {
   EyeOff,
   Loader2,
   KeyRound,
+  Users,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,9 @@ interface UserData {
   username: string;
   no_tlp: string;
   level: string;
+  kelompok?: {
+    nama_kelompok: string;
+  };
 }
 
 export default function ProfilePage() {
@@ -225,113 +229,68 @@ export default function ProfilePage() {
               </div>
 
               {/* Informasi */}
-
-              <div className="flex-1 grid md:grid-cols-2 gap-6">
-
-                <div className="rounded-2xl border p-5">
-
-                  <div className="flex items-center gap-3">
-
-                    <User className="text-blue-600" />
-
-                    <div>
-
-                      <p className="text-gray-500 text-sm">
-
-                        Nama Lengkap
-
-                      </p>
-
-                      <h3 className="font-semibold text-lg">
-
-                        {user.nama}
-
-                      </h3>
-
+              <div className="flex-1 grid md:grid-cols-2 gap-4">
+                <div className="rounded-2xl border border-gray-100 bg-gray-50/30 p-5 hover:bg-white hover:shadow-md transition-all duration-300">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-blue-100/50 rounded-xl">
+                      <User className="text-blue-600" size={24} />
                     </div>
-
+                    <div>
+                      <p className="text-gray-500 text-xs font-medium uppercase tracking-wider">Nama Lengkap</p>
+                      <h3 className="font-bold text-gray-800 text-lg mt-0.5">{user.nama}</h3>
+                    </div>
                   </div>
-
                 </div>
 
-                <div className="rounded-2xl border p-5">
-
-                  <div className="flex items-center gap-3">
-
-                    <UserCircle2 className="text-green-600" />
-
-                    <div>
-
-                      <p className="text-gray-500 text-sm">
-
-                        Username
-
-                      </p>
-
-                      <h3 className="font-semibold text-lg">
-
-                        {user.username}
-
-                      </h3>
-
+                <div className="rounded-2xl border border-gray-100 bg-gray-50/30 p-5 hover:bg-white hover:shadow-md transition-all duration-300">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-emerald-100/50 rounded-xl">
+                      <UserCircle2 className="text-emerald-600" size={24} />
                     </div>
-
+                    <div>
+                      <p className="text-gray-500 text-xs font-medium uppercase tracking-wider">Username</p>
+                      <h3 className="font-bold text-gray-800 text-lg mt-0.5">{user.username}</h3>
+                    </div>
                   </div>
-
                 </div>
 
-                <div className="rounded-2xl border p-5">
-
-                  <div className="flex items-center gap-3">
-
-                    <Phone className="text-orange-600" />
-
-                    <div>
-
-                      <p className="text-gray-500 text-sm">
-
-                        Nomor HP
-
-                      </p>
-
-                      <h3 className="font-semibold text-lg">
-
-                        {user.no_tlp}
-
-                      </h3>
-
+                <div className="rounded-2xl border border-gray-100 bg-gray-50/30 p-5 hover:bg-white hover:shadow-md transition-all duration-300">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-amber-100/50 rounded-xl">
+                      <Phone className="text-amber-600" size={24} />
                     </div>
-
+                    <div>
+                      <p className="text-gray-500 text-xs font-medium uppercase tracking-wider">Nomor HP</p>
+                      <h3 className="font-bold text-gray-800 text-lg mt-0.5">{user.no_tlp}</h3>
+                    </div>
                   </div>
-
                 </div>
 
-                <div className="rounded-2xl border p-5">
-
-                  <div className="flex items-center gap-3">
-
-                    <Shield className="text-red-600" />
-
-                    <div>
-
-                      <p className="text-gray-500 text-sm">
-
-                        Level
-
-                      </p>
-
-                      <h3 className="font-semibold text-lg capitalize">
-
-                        {user.level}
-
-                      </h3>
-
+                <div className="rounded-2xl border border-gray-100 bg-gray-50/30 p-5 hover:bg-white hover:shadow-md transition-all duration-300">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-rose-100/50 rounded-xl">
+                      <Shield className="text-rose-600" size={24} />
                     </div>
-
+                    <div>
+                      <p className="text-gray-500 text-xs font-medium uppercase tracking-wider">Level Akses</p>
+                      <h3 className="font-bold text-gray-800 text-lg mt-0.5 capitalize">{user.level}</h3>
+                    </div>
                   </div>
-
                 </div>
 
+                {user.kelompok && (
+                  <div className="rounded-2xl border border-gray-100 bg-gray-50/30 p-5 hover:bg-white hover:shadow-md transition-all duration-300 md:col-span-2">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 bg-purple-100/50 rounded-xl">
+                        <Users className="text-purple-600" size={24} />
+                      </div>
+                      <div>
+                        <p className="text-gray-500 text-xs font-medium uppercase tracking-wider">Kelompok UP2K</p>
+                        <h3 className="font-bold text-gray-800 text-lg mt-0.5">{user.kelompok.nama_kelompok}</h3>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
             </div>

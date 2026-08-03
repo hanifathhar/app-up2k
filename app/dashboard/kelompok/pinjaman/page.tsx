@@ -39,11 +39,34 @@ export default function PinjamanPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  // Print Modal states
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [printKelompokId, setPrintKelompokId] = useState<string>("all");
+  const [printYear, setPrintYear] = useState<string>("all");
+  const [printMonth, setPrintMonth] = useState<string>("all");
+  
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [kelompokList, setKelompokList] = useState<any[]>([]);
+
   const fetchPinjaman = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/up2k/pinjaman");
-      const data = await res.json();
+      const [meRes, pinjamanRes] = await Promise.all([
+        fetch("/api/me"),
+        fetch("/api/up2k/pinjaman")
+      ]);
+      const meData = await meRes.json();
+      const data = await pinjamanRes.json();
+      
+      const adminStatus = meData.user?.level === 'admin' || meData.user?.level === 'superadmin' || meData.user?.level === 'up2k_admin';
+      setIsAdmin(adminStatus);
+      
+      if (adminStatus) {
+        const kelRes = await fetch("/api/up2k/kelompok");
+        const kelData = await kelRes.json();
+        if (!kelData.error) setKelompokList(kelData);
+      }
+
       if (!data.error) setPinjamanList(data);
     } catch (err) {
       console.error(err);
@@ -55,6 +78,14 @@ export default function PinjamanPage() {
   useEffect(() => {
     fetchPinjaman();
   }, []);
+
+  const availableYears = Array.from(new Set(pinjamanList.map(item => new Date(item.tanggal_pinjam).getFullYear()))).sort((a, b) => b - a);
+  const availableMonths = [
+    { value: "0", label: "Januari" }, { value: "1", label: "Februari" }, { value: "2", label: "Maret" },
+    { value: "3", label: "April" }, { value: "4", label: "Mei" }, { value: "5", label: "Juni" },
+    { value: "6", label: "Juli" }, { value: "7", label: "Agustus" }, { value: "8", label: "September" },
+    { value: "9", label: "Oktober" }, { value: "10", label: "November" }, { value: "11", label: "Desember" }
+  ];
 
   // Reset page when filter changes
   useEffect(() => {
@@ -217,11 +248,34 @@ export default function PinjamanPage() {
   const paginatedPinjamanList = filteredPinjamanList.slice(startIndex, startIndex + itemsPerPage);
 
   const handlePrint = () => {
+    setShowPrintModal(true);
+  };
+
+  const executePrint = () => {
     const printWindow = window.open('', '', 'height=700,width=900');
     if (!printWindow) return alert("Pop-up diblokir. Izinkan pop-up untuk mencetak.");
 
+    let printData = [...pinjamanList];
+    if (isAdmin && printKelompokId !== "all") {
+      printData = printData.filter(item => item.kelompokId === Number(printKelompokId));
+    }
+    if (printYear !== "all") {
+      printData = printData.filter(item => new Date(item.tanggal_pinjam).getFullYear() === Number(printYear));
+    }
+    if (printMonth !== "all") {
+      printData = printData.filter(item => new Date(item.tanggal_pinjam).getMonth() === Number(printMonth));
+    }
+
+    let headerKelompok = "GABUNGAN SEMUA KELOMPOK";
+    if (!isAdmin) {
+       headerKelompok = pinjamanList.length > 0 && pinjamanList[0].kelompok?.nama_kelompok ? pinjamanList[0].kelompok.nama_kelompok.toUpperCase() : "KELOMPOK UP2K";
+    } else if (printKelompokId !== "all") {
+       const selected = kelompokList.find(k => k.id === Number(printKelompokId));
+       if (selected) headerKelompok = selected.nama_kelompok.toUpperCase();
+    }
+
     let rowsHtml = "";
-    filteredPinjamanList.forEach((item, idx) => {
+    printData.forEach((item, idx) => {
       const monthsData = Array(12).fill(null).map(() => ({ angsuran: 0, iuran: 0, simpanan: 0 }));
       item.angsuran.forEach((ang: any) => {
         const monthIndex = new Date(ang.tanggal).getMonth();
@@ -276,7 +330,7 @@ export default function PinjamanPage() {
           </style>
         </head>
         <body>
-          <h1>BUKU DAFTAR PINJAMAN, ANGSURAN, IURAN DAN SIMPANAN POKSUS UP2K PKK DESA SUGI KECAMATAN MARANCAR</h1>
+          <h1>BUKU DAFTAR PINJAMAN, ANGSURAN, IURAN DAN SIMPANAN POKSUS UP2K PKK ${headerKelompok} DESA SUGI KECAMATAN MARANCAR</h1>
           <table>
             <thead>
               <tr>
@@ -306,6 +360,7 @@ export default function PinjamanPage() {
     setTimeout(() => {
       printWindow.print();
       printWindow.close();
+      setShowPrintModal(false);
     }, 250);
   };
 
@@ -318,7 +373,7 @@ export default function PinjamanPage() {
           </h1>
           <p className="text-gray-500 text-sm mt-1">Kelola pinjaman, cicilan pokok, dan jasa/bunga.</p>
         </div>
-        <div className="flex gap-2 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <Button variant="outline" onClick={handlePrint} className="bg-white border-gray-300 text-gray-700 hover:bg-gray-50 w-full sm:w-auto">
             <Printer size={18} className="mr-2" /> Cetak Laporan
           </Button>
@@ -832,6 +887,69 @@ export default function PinjamanPage() {
         )}
       </div>
 
+      {showPrintModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-600 to-blue-800 p-4 text-white flex justify-between items-center">
+              <h3 className="font-bold text-lg flex items-center gap-2"><Printer size={18}/> Cetak Laporan Pinjaman</h3>
+              <button onClick={() => setShowPrintModal(false)} className="text-blue-100 hover:text-white"><X size={20}/></button>
+            </div>
+            <div className="p-6 space-y-4">
+              {isAdmin && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Pilih Kelompok</label>
+                  <select 
+                    value={printKelompokId} 
+                    onChange={e => setPrintKelompokId(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="all">Gabungan (Semua Kelompok)</option>
+                    {kelompokList.map(kel => (
+                      <option key={kel.id} value={kel.id}>{kel.nama_kelompok}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Pilih Tahun</label>
+                  <select 
+                    value={printYear} 
+                    onChange={e => setPrintYear(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="all">Semua Tahun</option>
+                    {availableYears.map(year => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Pilih Bulan (Tanggal Pinjam)</label>
+                  <select 
+                    value={printMonth} 
+                    onChange={e => setPrintMonth(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="all">Semua Bulan</option>
+                    {availableMonths.map(m => (
+                      <option key={m.value} value={m.value}>{m.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gray-50 p-4 border-t flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setShowPrintModal(false)}>Batal</Button>
+              <Button onClick={executePrint} className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2">
+                <Printer size={16}/>
+                Cetak Sekarang
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
