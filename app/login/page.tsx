@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, CheckCircle, XCircle, User, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
+import logoPic from "@/public/favicon.png";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -123,9 +124,15 @@ export default function LoginPage() {
           {/* Header */}
           <div className="text-center mb-8">
             <div className="flex flex-col items-center">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-[1.5rem] bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white text-3xl sm:text-4xl font-black shadow-lg shadow-red-200 mb-5">
-                UP
-              </div>
+              <Image
+                src={logoPic}
+                alt="Logo UP2K"
+                width={96}
+                height={96}
+                className="w-20 h-20 sm:w-24 sm:h-24 object-contain mb-5"
+                priority
+                unoptimized
+              />
               <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
                 Aplikasi UP2K
               </h1>

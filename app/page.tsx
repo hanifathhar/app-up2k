@@ -5,10 +5,10 @@ import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, CheckCircle, XCircle } from "lucide-react";
+import { Eye, EyeOff, CheckCircle, XCircle, User, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
-
+import logoPic from "@/public/favicon.png";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -16,18 +16,12 @@ export default function LoginPage() {
   const [showPasword, setShowPasword] = useState(false);
   const [loading, setLoading] = useState(false);
 
- const [mounted, setMounted] = useState(false);
- const [time, setTime] = useState(new Date()); 
+  const [mounted, setMounted] = useState(false);
+  const [time, setTime] = useState(new Date());
 
   const [notif, setNotif] = useState<{
     type: "success" | "error";
     message: string;
-  } | null>(null);
-
-  const [toko, setToko] = useState<{
-    nama: string;
-    logo: string | null;
-    alamat: string | null;
   } | null>(null);
 
   const router = useRouter();
@@ -40,31 +34,6 @@ export default function LoginPage() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, []);
-
-
-
-const loadToko = async () => {
-    try {
-      const res = await fetch("/api/toko", {
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": "programming-123",
-        },
-      });
-
-      if (!res.ok) throw new Error();
-
-      const result = await res.json();
-
-      setToko(result.data ?? result);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-   useEffect(() => {
-    loadToko();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -116,464 +85,195 @@ const loadToko = async () => {
   };
 
   return (
-    <div className="min-h-screen flex bg-red-50 overflow-hidden">
-      {/* KIRI */}
+    <div className="min-h-screen relative flex items-center justify-center overflow-hidden bg-gray-900">
+      {/* BACKGROUND IMAGE - TEMA EKONOMI DESA */}
+      <div className="absolute inset-0 z-0">
+        <Image
+          src="/images/bg-desa.png"
+          alt="Latar Belakang Ekonomi Desa"
+          fill
+          priority
+          className="object-cover object-center"
+        />
+        {/* Overlay untuk keterbacaan (Reddish dark theme to match UP2K) */}
+        <div className="absolute inset-0 bg-gradient-to-t from-red-950/95 via-red-900/80 to-red-950/60 backdrop-blur-[2px]" />
+      </div>
+
+      {/* FORM CARD - CENTERED */}
       <motion.div
-        initial={{ opacity: 0, x: -40 }}
-        animate={{ opacity: 1, x: 0 }}
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="w-full lg:w-[45%] flex items-center justify-center px-6 py-10 lg:px-16 relative"
+        className="relative z-10 w-full max-w-[28rem] px-6 py-10"
       >
         <div
           className="
             w-full
-            max-w-md
-            bg-white
-            rounded-[32px]
-            shadow-[0_25px_80px_rgba(220,38,38,0.15)]
+            bg-white/95
+            backdrop-blur-md
+            rounded-[2rem]
+            shadow-[0_30px_60px_rgba(0,0,0,0.3)]
             border
-            border-red-100
+            border-white/20
             p-8
-            md:p-10
+            sm:p-10
+            flex
+            flex-col
           "
         >
-          {/* Heading */}
-          <div className="text-center mb-4">
-            <div className="flex flex-col items-center">
-
-              {toko?.logo ? (
-                <Image
-                  src={toko.logo}
-                  alt={toko.nama}
-                  width={70}
-                  height={70}
-                  className="object-contain rounded-xl mb-3"
-                />
-              ) : (
-                <div className="w-20 h-20 rounded-xl bg-red-600 flex items-center justify-center text-white text-3xl font-bold mb-3">
-                  SP
-                </div>
-              )}
-
-              <h1 className="text-2xl font-bold text-red-600">
-                {toko?.nama ?? "SMART POS"}
-              </h1>
-
-            </div>
-          </div>
-
-          {/* Timer */}
+          {/* Header */}
           <div className="text-center mb-8">
-            <div className="inline-block px-5 py-3 rounded-2xl bg-red-50 border border-red-200">
-              <p className="text-2xl font-bold text-red-700">
-                {mounted && time.toLocaleTimeString("id-ID")}
-              </p>
-
-              <p className="text-xs text-gray-600">
-                {mounted &&
-                  time.toLocaleDateString("id-ID", {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })}
+            <div className="flex flex-col items-center">
+              <Image
+                src={logoPic}
+                alt="Logo UP2K"
+                width={96}
+                height={96}
+                className="w-20 h-20 sm:w-24 sm:h-24 object-contain mb-5"
+                priority
+                unoptimized
+              />
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
+                Aplikasi UP2K
+              </h1>
+              <p className="text-gray-500 mt-2 text-sm sm:text-base font-medium">
+                Usaha Peningkatan Pendapatan Keluarga
               </p>
             </div>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <Label htmlFor="username">Username</Label>
-
-              <Input
-                id="username"
-                type="text"
-                placeholder="Masukkan username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                className="mt-2 h-12 rounded-xl"
-              />
-            </div>
-
-            <div className="relative">
-              <Label htmlFor="password">Password</Label>
-
-              <Input
-                id="password"
-                type={showPasword ? "text" : "password"}
-                placeholder="Masukkan password"
-                value={pasword}
-                onChange={(e) => setPasword(e.target.value)}
-                required
-                className="mt-2 h-12 rounded-xl pr-12"
-              />
-
-              <button
-                type="button"
-                onClick={() => setShowPasword(!showPasword)}
-                className="absolute right-4 top-11 text-gray-500 hover:text-red-600"
-              >
-                {showPasword ? (
-                  <EyeOff size={20} />
-                ) : (
-                  <Eye size={20} />
-                )}
-              </button>
-            </div>
-
-            <Button
-              type="submit"
-              disabled={loading}
-              className="
-                w-full
-                h-12
-                rounded-xl
-                bg-gradient-to-r
-                from-red-700
-                to-red-500
-                hover:scale-[1.02]
-                text-white
-                font-semibold
-                shadow-lg
-                transition-all
-                duration-300
-              "
-            >
-              {loading ? (
-                <div className="flex items-center justify-center gap-2">
-                  <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Memproses...
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-1.5">
+              <Label htmlFor="username" className="text-gray-700 font-bold">Username</Label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
+                  <User size={20} />
                 </div>
-              ) : (
-                "Masuk ke Dashboard"
-              )}
-            </Button>
+                <Input
+                  id="username"
+                  type="text"
+                  placeholder="Masukkan username Anda"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                  className="pl-11 h-14 rounded-xl bg-gray-50/80 border-gray-200 focus:bg-white focus:border-red-500 focus:ring-red-500 transition-all text-base"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5 relative">
+              <Label htmlFor="password" className="text-gray-700 font-bold">Password</Label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
+                  <Lock size={20} />
+                </div>
+                <Input
+                  id="password"
+                  type={showPasword ? "text" : "password"}
+                  placeholder="Masukkan password Anda"
+                  value={pasword}
+                  onChange={(e) => setPasword(e.target.value)}
+                  required
+                  className="pl-11 pr-12 h-14 rounded-xl bg-gray-50/80 border-gray-200 focus:bg-white focus:border-red-500 focus:ring-red-500 transition-all text-base"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPasword(!showPasword)}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-red-600 transition-colors"
+                >
+                  {showPasword ? (
+                    <EyeOff size={20} />
+                  ) : (
+                    <Eye size={20} />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <div className="pt-4">
+              <Button
+                type="submit"
+                disabled={loading}
+                className="
+                  w-full
+                  h-14
+                  rounded-xl
+                  bg-gradient-to-r
+                  from-red-600
+                  to-red-700
+                  hover:from-red-700
+                  hover:to-red-800
+                  active:scale-[0.98]
+                  text-white
+                  font-bold
+                  text-lg
+                  shadow-xl
+                  shadow-red-600/20
+                  transition-all
+                  duration-200
+                "
+              >
+                {loading ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Memproses...
+                  </div>
+                ) : (
+                  "Masuk"
+                )}
+              </Button>
+            </div>
           </form>
 
-          <div className="text-center mt-6">
-             <footer className="absolute bottom-5 left-0 right-0 text-center">
-              <p className="text-sm text-gray-500">
-                © {new Date().getFullYear()} SMART POS
-              </p>
-              <p className="text-xs text-gray-400">
-                Developed by Team TI Kabupaten Tapanuli Selatan
-              </p>
-              <p className="text-xs text-gray-400">
-                All Rights Reserved
-              </p>
-            </footer>
+          {/* Footer Card */}
+          <div className="mt-8 text-center">
+            <p className="text-xs text-gray-500 font-medium">
+              © {new Date().getFullYear()} Aplikasi UP2K<br />
+              Developed by Team TI Kab. Tapanuli Selatan
+            </p>
           </div>
         </div>
-
-        {/* Notifikasi */}
-        <AnimatePresence>
-          {notif && (
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 30 }}
-              className={`fixed bottom-5 left-1/2 -translate-x-1/2 px-5 py-3 rounded-xl shadow-xl text-white flex items-center gap-2 z-50 ${
-                notif.type === "success"
-                  ? "bg-green-600"
-                  : "bg-red-800"
-              }`}
-            >
-              {notif.type === "success" ? (
-                <CheckCircle size={18} />
-              ) : (
-                <XCircle size={18} />
-              )}
-              {notif.message}
-            </motion.div>
-          )}
-        </AnimatePresence>
       </motion.div>
 
-      {/* KANAN */}
-      {/* RIGHT HERO */}
-
-<motion.div
-  initial={{ opacity:0, x:60 }}
-  animate={{ opacity:1,x:0 }}
-  transition={{duration:.8}}
-  className="
-    hidden
-    lg:flex
-    flex-1
-    relative
-    overflow-hidden
-    bg-gradient-to-br
-    from-red-950
-    via-red-700
-    to-red-500
-  "
->
-
-
-{/* Decorative Circle */}
-
-<div
-className="
-absolute
--right-40
--top-40
-w-[500px]
-h-[500px]
-rounded-full
-bg-white/10
-blur-3xl
-"
-/>
-
-
-<div
-className="
-absolute
--left-40
--bottom-20
-w-[350px]
-h-[350px]
-rounded-full
-bg-red-900/40
-blur-3xl
-"
-/>
-
-
-
-{/* IMAGE */}
-
-<Image
-  src="/images/bg1.png"
-  alt="POS Dashboard"
-  fill
-  priority
-  className="object-contain object-center"
-/>
-
-
-
-{/* Dark Gradient */}
-
-<div
-className="
-absolute
-inset-0
-bg-gradient-to-r
-from-red-950/95
-via-red-800/50
-to-transparent
-"
-/>
-
-
-
-{/* TOP LINE */}
-
-<div
-className="
-absolute
-top-0
-left-0
-w-full
-h-2
-bg-white
-z-20
-"
-/>
-
-<div
-className="
-absolute
-top-2
-left-0
-w-full
-h-2
-bg-red-400
-z-20
-"
-/>
-
-
-
-{/* CONTENT */}
-
-<div
-className="
-relative
-z-10
-px-14
-max-w-xl
-flex
-flex-col
-justify-center
-"
->
-
-
-{/* LOGO CARD */}
-
-<div
-className="
-flex
-items-center
-gap-5
-mb-12
-"
->
-
-<div
-className="
-w-20
-h-20
-rounded-3xl
-bg-white/90
-backdrop-blur
-shadow-2xl
-flex
-items-center
-justify-center
-"
->
-
-{
-toko?.logo ?
-
-<Image
-src={toko.logo}
-alt="logo"
-width={60}
-height={60}
-className="object-contain"
-/>
-
-:
-
-<span
-className="
-text-red-700
-font-black
-text-3xl
-"
->
-SP
-</span>
-
-}
-
-</div>
-
-
-
-<div>
-
-<h1
-className="
-text-4xl
-font-black
-text-white
-"
->
-{toko?.nama ?? "SMART POS"}
-</h1>
-
-
-<p
-className="
-text-red-100
-text-sm
-"
->
-{toko?.alamat ?? "Smart Business Solution"}
-</p>
-
-
-</div>
-
-
-</div>
-
-
-
-
-
-
-
-
-
-{/* FEATURE CARD */}
-
-<div
-className="
-mt-10
-flex
-gap-4
-"
->
-
-
-<div
-className="
-bg-white/20
-backdrop-blur-md
-border
-border-white/30
-rounded-2xl
-px-5
-py-4
-text-white
-"
->
-
-<p className="text-2xl font-bold">
-99%
-</p>
-
-<p className="text-xs">
-Akurat
-</p>
-
-
-</div>
-
-
-
-<div
-className="
-bg-white/20
-backdrop-blur-md
-border
-border-white/30
-rounded-2xl
-px-5
-py-4
-text-white
-"
->
-
-<p className="text-2xl font-bold">
-Realtime
-</p>
-
-<p className="text-xs">
-Monitoring
-</p>
-
-
-</div>
-
-
-</div>
-
-
-
-</div>
-
-
-
-</motion.div>
+      {/* Floating Time - Bottom Right Corner (Visible on Desktop mostly, or centered at bottom on mobile) */}
+      <div className="absolute bottom-6 w-full text-center lg:w-auto lg:right-8 lg:bottom-8 lg:text-right z-10">
+        <div className="inline-block px-5 py-2.5 rounded-xl bg-black/30 backdrop-blur-md border border-white/10 text-white shadow-2xl">
+          <p className="text-lg font-bold tracking-widest text-red-100">
+            {mounted && time.toLocaleTimeString("id-ID")}
+          </p>
+          <p className="text-xs text-gray-300 mt-0.5 font-medium">
+            {mounted &&
+              time.toLocaleDateString("id-ID", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })}
+          </p>
+        </div>
+      </div>
+
+      {/* Notifikasi */}
+      <AnimatePresence>
+        {notif && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            className={`absolute top-8 left-1/2 -translate-x-1/2 w-[90%] max-w-sm px-4 py-3 rounded-2xl shadow-2xl text-white flex items-center gap-3 z-50 ${notif.type === "success" ? "bg-emerald-500" : "bg-red-500"
+              }`}
+          >
+            {notif.type === "success" ? (
+              <CheckCircle size={20} className="shrink-0" />
+            ) : (
+              <XCircle size={20} className="shrink-0" />
+            )}
+            <span className="text-sm font-medium">{notif.message}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
+
