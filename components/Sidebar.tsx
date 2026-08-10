@@ -74,59 +74,67 @@ export default function Sidebar({
     "Dashboard"
   );
 
- const allMenus = [
-  {
-    title: "Dashboard",
-    icon: <Home size={18} />,
-    href: "/dashboard",
-    roles: ["superadmin", "admin", "kasir"],
-  },
+  const allMenus = [
+    {
+      title: "Dashboard",
+      icon: <Home size={18} />,
+      href: "/dashboard",
+      roles: ["superadmin", "admin", "kasir"],
+    },
 
 
-  {
-    title: "UP2K Kelompok",
-    icon: <Users size={18} />,
-    roles: ["superadmin", "up2k_admin", "up2k_kelompok"],
-    children: [
-      {
-        label: "Dashboard Kelompok",
-        href: "/dashboard/kelompok",
-      },
-      {
-        label: "Buku Kas Umum",
-        href: "/dashboard/kelompok/bku",
-      },
-      {
-        label: "Pinjaman & Angsuran",
-        href: "/dashboard/kelompok/pinjaman",
-      },
-    ],
-  },
-  {
-    title: "UP2K Admin",
-    icon: <BarChart3 size={18} />,
-    roles: ["superadmin", "up2k_admin"],
-    children: [
-      {
-        label: "Konsolidasi",
-        href: "/dashboard/admin/up2k",
-      },
-      {
-        label: "Manajemen Kelompok",
-        href: "/dashboard/admin/kelompok",
-      },
-      {
-        label: "Manajemen Pengguna",
-        href: "/dashboard/admin/pengguna",
-      },
-    ],
-  },
-];
+    {
+      title: "UP2K Kelompok",
+      icon: <Users size={18} />,
+      roles: ["superadmin", "up2k_admin", "up2k_kelompok"],
+      children: [
+        {
+          label: "Dashboard Kelompok",
+          href: "/dashboard/kelompok",
+        },
+        {
+          label: "Buku Kas Umum",
+          href: "/dashboard/kelompok/bku",
+        },
+        {
+          label: "Pinjaman & Angsuran",
+          href: "/dashboard/kelompok/pinjaman",
+        },
+        {
+          label: "Buku Iuran",
+          href: "/dashboard/kelompok/iuran",
+        },
+        {
+          label: "Buku Simpanan",
+          href: "/dashboard/kelompok/simpanan",
+        },
+      ],
+    },
+    {
+      title: "UP2K Admin",
+      icon: <BarChart3 size={18} />,
+      roles: ["superadmin", "up2k_admin"],
+      children: [
+        {
+          label: "Konsolidasi",
+          href: "/dashboard/admin/up2k",
+        },
+        {
+          label: "Manajemen Kelompok",
+          href: "/dashboard/admin/kelompok",
+        },
+        {
+          label: "Manajemen Pengguna",
+          href: "/dashboard/admin/pengguna",
+        },
+      ],
+    },
+  ];
 
   const menuItems = role
     ? allMenus.filter((item) =>
-        item.roles.includes(role)
-      )
+      item.roles.includes(role)
+    )
     : [];
 
   return (
@@ -149,10 +157,9 @@ export default function Sidebar({
           flex flex-col
           justify-between
           transform transition-all duration-300
-          ${
-            sidebarOpen
-              ? "translate-x-0"
-              : "-translate-x-full md:translate-x-0"
+          ${sidebarOpen
+            ? "translate-x-0"
+            : "-translate-x-full md:translate-x-0"
           }
         `}
       >
@@ -166,18 +173,18 @@ export default function Sidebar({
                 <div>
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-lg overflow-hidden">
-                        <span className="text-red-600 font-black text-xl">
-                          UP
-                        </span>
+                      <span className="text-red-600 font-black text-xl">
+                        UP
+                      </span>
                     </div>
 
                     <div>
                       <h2 className="font-bold text-lg leading-tight">
-                        Aplikasi UP2K
+                        Berhepeng SMART
                       </h2>
 
                       <p className="text-xs text-red-100">
-                        Usaha Peningkatan Pendapatan Keluarga
+                        Sistem Manajemen Administrasi, Rekap dan Tracking
                       </p>
                     </div>
                   </div>
@@ -284,7 +291,7 @@ export default function Sidebar({
             </p>
           </div>
 
-         
+
 
           <p className="text-center text-xs text-gray-400 mt-4">
             © 2026 Aplikasi UP2K

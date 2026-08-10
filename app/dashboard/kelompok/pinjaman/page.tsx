@@ -9,9 +9,10 @@ export default function PinjamanPage() {
   const [pinjamanList, setPinjamanList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  
+
   const [editId, setEditId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
+    kelompokId: "",
     nama_peminjam: "",
     keperluan_usaha: "",
     tanggal_pinjam: new Date().toISOString().split("T")[0],
@@ -44,7 +45,7 @@ export default function PinjamanPage() {
   const [printKelompokId, setPrintKelompokId] = useState<string>("all");
   const [printYear, setPrintYear] = useState<string>("all");
   const [printMonth, setPrintMonth] = useState<string>("all");
-  
+
   const [isAdmin, setIsAdmin] = useState(false);
   const [kelompokList, setKelompokList] = useState<any[]>([]);
 
@@ -57,10 +58,10 @@ export default function PinjamanPage() {
       ]);
       const meData = await meRes.json();
       const data = await pinjamanRes.json();
-      
+
       const adminStatus = meData.user?.level === 'admin' || meData.user?.level === 'superadmin' || meData.user?.level === 'up2k_admin';
       setIsAdmin(adminStatus);
-      
+
       if (adminStatus) {
         const kelRes = await fetch("/api/up2k/kelompok");
         const kelData = await kelRes.json();
@@ -105,7 +106,7 @@ export default function PinjamanPage() {
       if (res.ok) {
         setShowForm(false);
         setEditId(null);
-        setFormData({ ...formData, nama_peminjam: "", keperluan_usaha: "", jumlah_pinjaman: "", lama_angsuran: "", jasa: "0" });
+        setFormData({ kelompokId: "", nama_peminjam: "", keperluan_usaha: "", tanggal_pinjam: new Date().toISOString().split("T")[0], jumlah_pinjaman: "", lama_angsuran: "", jasa: "0" });
         fetchPinjaman();
       } else {
         const error = await res.json();
@@ -119,6 +120,7 @@ export default function PinjamanPage() {
   const handleEdit = (item: any) => {
     setEditId(item.id);
     setFormData({
+      kelompokId: item.kelompokId?.toString() || "",
       nama_peminjam: item.nama_peminjam,
       keperluan_usaha: item.keperluan_usaha || "",
       tanggal_pinjam: new Date(item.tanggal_pinjam).toISOString().split("T")[0],
@@ -152,7 +154,7 @@ export default function PinjamanPage() {
     try {
       const url = editAngsuranId ? `/api/up2k/angsuran/${editAngsuranId}` : "/api/up2k/angsuran";
       const method = editAngsuranId ? "PUT" : "POST";
-      
+
       const payload = editAngsuranId ? {
         tanggal: angsuranData.tanggal,
         angsuran_pokok: angsuranData.angsuran_pokok,
@@ -185,7 +187,7 @@ export default function PinjamanPage() {
             if (updatedSelected) setSelectedPinjaman(updatedSelected);
           }
         } else {
-            setSelectedPinjaman(null);
+          setSelectedPinjaman(null);
         }
       } else {
         const error = await res.json();
@@ -223,6 +225,8 @@ export default function PinjamanPage() {
   let totalPinjaman = 0;
   let totalAngsuranPokok = 0;
   let totalAngsuranJasa = 0;
+  let totalIuran = 0;
+  let totalSimpanan = 0;
   const uniqueBorrowers = new Set();
 
   pinjamanList.forEach(item => {
@@ -231,6 +235,8 @@ export default function PinjamanPage() {
     item.angsuran.forEach((ang: any) => {
       totalAngsuranPokok += Number(ang.angsuran_pokok);
       totalAngsuranJasa += Number(ang.jasa);
+      totalIuran += Number(ang.iuran || 0);
+      totalSimpanan += Number(ang.simpanan || 0);
     });
   });
 
@@ -268,10 +274,10 @@ export default function PinjamanPage() {
 
     let headerKelompok = "GABUNGAN SEMUA KELOMPOK";
     if (!isAdmin) {
-       headerKelompok = pinjamanList.length > 0 && pinjamanList[0].kelompok?.nama_kelompok ? pinjamanList[0].kelompok.nama_kelompok.toUpperCase() : "KELOMPOK UP2K";
+      headerKelompok = pinjamanList.length > 0 && pinjamanList[0].kelompok?.nama_kelompok ? pinjamanList[0].kelompok.nama_kelompok.toUpperCase() : "KELOMPOK UP2K";
     } else if (printKelompokId !== "all") {
-       const selected = kelompokList.find(k => k.id === Number(printKelompokId));
-       if (selected) headerKelompok = selected.nama_kelompok.toUpperCase();
+      const selected = kelompokList.find(k => k.id === Number(printKelompokId));
+      if (selected) headerKelompok = selected.nama_kelompok.toUpperCase();
     }
 
     let rowsHtml = "";
@@ -356,7 +362,7 @@ export default function PinjamanPage() {
 
     printWindow.document.close();
     printWindow.focus();
-    
+
     setTimeout(() => {
       printWindow.print();
       printWindow.close();
@@ -379,7 +385,7 @@ export default function PinjamanPage() {
           </Button>
           <Button onClick={() => {
             setEditId(null);
-            setFormData({ nama_peminjam: "", keperluan_usaha: "", tanggal_pinjam: new Date().toISOString().split("T")[0], jumlah_pinjaman: "", lama_angsuran: "", jasa: "0" });
+            setFormData({ kelompokId: "", nama_peminjam: "", keperluan_usaha: "", tanggal_pinjam: new Date().toISOString().split("T")[0], jumlah_pinjaman: "", lama_angsuran: "", jasa: "0" });
             setShowForm(!showForm);
             setShowAngsuran(false);
             setShowDetail(false);
@@ -390,34 +396,54 @@ export default function PinjamanPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
-          <div className="p-3 bg-blue-100 text-blue-600 rounded-lg">
-            <Landmark size={24} />
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-3">
+          <div className="p-2.5 bg-blue-100 text-blue-600 rounded-lg flex-shrink-0">
+            <Landmark size={20} />
           </div>
-          <div>
-            <p className="text-sm text-gray-500 font-medium">Total Pokok Pinjaman</p>
-            <h3 className="text-xl font-bold text-gray-800">Rp {totalPinjaman.toLocaleString("id-ID")}</h3>
-          </div>
-        </div>
-        
-        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
-          <div className="p-3 bg-green-100 text-green-600 rounded-lg">
-            <Banknote size={24} />
-          </div>
-          <div>
-            <p className="text-sm text-gray-500 font-medium">Total Angsuran Masuk</p>
-            <h3 className="text-xl font-bold text-gray-800">Rp {(totalAngsuranPokok + totalAngsuranJasa).toLocaleString("id-ID")}</h3>
+          <div className="min-w-0">
+            <p className="text-xs text-gray-500 font-medium truncate">Total Pokok Pinjaman</p>
+            <h3 className="text-base font-bold text-gray-800 truncate">Rp {totalPinjaman.toLocaleString("id-ID")}</h3>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-xl shadow-sm border border-purple-100 flex items-center gap-4 ring-1 ring-purple-50">
-          <div className="p-3 bg-purple-100 text-purple-600 rounded-lg">
-            <Users size={24} />
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-3">
+          <div className="p-2.5 bg-green-100 text-green-600 rounded-lg flex-shrink-0">
+            <Banknote size={20} />
           </div>
-          <div>
-            <p className="text-sm text-purple-600 font-medium">Total Peminjam</p>
-            <h3 className="text-2xl font-bold text-purple-900">{uniqueBorrowers.size} Orang</h3>
+          <div className="min-w-0">
+            <p className="text-xs text-gray-500 font-medium truncate">Total Angsuran Masuk</p>
+            <h3 className="text-base font-bold text-gray-800 truncate">Rp {(totalAngsuranPokok + totalAngsuranJasa).toLocaleString("id-ID")}</h3>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-purple-100 flex items-center gap-3 ring-1 ring-purple-50">
+          <div className="p-2.5 bg-purple-100 text-purple-600 rounded-lg flex-shrink-0">
+            <Users size={20} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs text-purple-600 font-medium truncate">Total Peminjam</p>
+            <h3 className="text-base font-bold text-purple-900">{uniqueBorrowers.size} Orang</h3>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-orange-100 flex items-center gap-3">
+          <div className="p-2.5 bg-orange-100 text-orange-600 rounded-lg flex-shrink-0">
+            <HandCoins size={20} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs text-orange-600 font-medium truncate">Total Iuran Terkumpul</p>
+            <h3 className="text-base font-bold text-orange-800 truncate">Rp {totalIuran.toLocaleString("id-ID")}</h3>
+          </div>
+        </div>
+
+        <div className="col-span-2 md:col-span-1 bg-white p-4 rounded-xl shadow-sm border border-teal-100 flex items-center gap-3">
+          <div className="p-2.5 bg-teal-100 text-teal-600 rounded-lg flex-shrink-0">
+            <Landmark size={20} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs text-teal-600 font-medium truncate">Total Simpanan Terkumpul</p>
+            <h3 className="text-base font-bold text-teal-800 truncate">Rp {totalSimpanan.toLocaleString("id-ID")}</h3>
           </div>
         </div>
       </div>
@@ -426,58 +452,74 @@ export default function PinjamanPage() {
         <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
           <h2 className="font-semibold text-lg">{editId ? "Edit Data Pinjaman" : "Input Pinjaman Baru"}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {isAdmin && (
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700">Kelompok <span className="text-red-500">*</span></label>
+                <select
+                  required
+                  className="mt-1 block w-full p-2 border border-gray-300 rounded-md bg-white"
+                  value={formData.kelompokId}
+                  onChange={e => setFormData({ ...formData, kelompokId: e.target.value })}
+                >
+                  <option value="">-- Pilih Kelompok --</option>
+                  {kelompokList.map((kel: any) => (
+                    <option key={kel.id} value={kel.id}>{kel.nama_kelompok}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700">Nama Peminjam</label>
-              <input 
+              <input
                 type="text" required
                 className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                 value={formData.nama_peminjam}
-                onChange={e => setFormData({...formData, nama_peminjam: e.target.value})}
+                onChange={e => setFormData({ ...formData, nama_peminjam: e.target.value })}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Untuk Keperluan Usaha</label>
-              <input 
+              <input
                 type="text" required
                 className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                 value={formData.keperluan_usaha}
-                onChange={e => setFormData({...formData, keperluan_usaha: e.target.value})}
+                onChange={e => setFormData({ ...formData, keperluan_usaha: e.target.value })}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Tanggal Pinjam</label>
-              <input 
+              <input
                 type="date" required
                 className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                 value={formData.tanggal_pinjam}
-                onChange={e => setFormData({...formData, tanggal_pinjam: e.target.value})}
+                onChange={e => setFormData({ ...formData, tanggal_pinjam: e.target.value })}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Jumlah Pinjaman (Rp)</label>
-              <input 
+              <input
                 type="number" required min="1"
                 className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                 value={formData.jumlah_pinjaman}
-                onChange={e => setFormData({...formData, jumlah_pinjaman: e.target.value})}
+                onChange={e => setFormData({ ...formData, jumlah_pinjaman: e.target.value })}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Lama Angsuran (Bulan)</label>
-              <input 
+              <input
                 type="number" required min="1"
                 className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                 value={formData.lama_angsuran}
-                onChange={e => setFormData({...formData, lama_angsuran: e.target.value})}
+                onChange={e => setFormData({ ...formData, lama_angsuran: e.target.value })}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Jasa / Bunga (Rp)</label>
-              <input 
+              <input
                 type="number" required min="0"
                 className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                 value={formData.jasa}
-                onChange={e => setFormData({...formData, jasa: e.target.value})}
+                onChange={e => setFormData({ ...formData, jasa: e.target.value })}
               />
             </div>
           </div>
@@ -500,47 +542,47 @@ export default function PinjamanPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">Tanggal Angsuran</label>
-              <input 
+              <input
                 type="date" required
                 className="mt-1 block w-full p-2 border border-gray-300 rounded-md bg-white"
                 value={angsuranData.tanggal}
-                onChange={e => setAngsuranData({...angsuranData, tanggal: e.target.value})}
+                onChange={e => setAngsuranData({ ...angsuranData, tanggal: e.target.value })}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Angsuran Pokok (Rp)</label>
-              <input 
+              <input
                 type="number" required min="1"
                 className="mt-1 block w-full p-2 border border-gray-300 rounded-md bg-white"
                 value={angsuranData.angsuran_pokok}
-                onChange={e => setAngsuranData({...angsuranData, angsuran_pokok: e.target.value})}
+                onChange={e => setAngsuranData({ ...angsuranData, angsuran_pokok: e.target.value })}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Jasa (Rp)</label>
-              <input 
+              <input
                 type="number" required min="0"
                 className="mt-1 block w-full p-2 border border-gray-300 rounded-md bg-white"
                 value={angsuranData.jasa}
-                onChange={e => setAngsuranData({...angsuranData, jasa: e.target.value})}
+                onChange={e => setAngsuranData({ ...angsuranData, jasa: e.target.value })}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Iuran (Rp)</label>
-              <input 
+              <input
                 type="number" required min="0"
                 className="mt-1 block w-full p-2 border border-gray-300 rounded-md bg-white"
                 value={angsuranData.iuran}
-                onChange={e => setAngsuranData({...angsuranData, iuran: e.target.value})}
+                onChange={e => setAngsuranData({ ...angsuranData, iuran: e.target.value })}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Simpanan (Rp)</label>
-              <input 
+              <input
                 type="number" required min="0"
                 className="mt-1 block w-full p-2 border border-gray-300 rounded-md bg-white"
                 value={angsuranData.simpanan}
-                onChange={e => setAngsuranData({...angsuranData, simpanan: e.target.value})}
+                onChange={e => setAngsuranData({ ...angsuranData, simpanan: e.target.value })}
               />
             </div>
           </div>
@@ -561,7 +603,7 @@ export default function PinjamanPage() {
               <X size={18} /> Tutup
             </Button>
           </div>
-          
+
           <div className="bg-white rounded-lg border border-blue-100 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left">
@@ -590,9 +632,9 @@ export default function PinjamanPage() {
                         <td className="px-4 py-3 text-right">Rp {Number(ang.simpanan).toLocaleString("id-ID")}</td>
                         <td className="px-4 py-3 text-center">
                           <div className="flex justify-center gap-1">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               className="text-blue-600 hover:text-blue-800 hover:bg-blue-100 h-7 px-2"
                               onClick={() => {
                                 setEditAngsuranId(ang.id);
@@ -610,9 +652,9 @@ export default function PinjamanPage() {
                             >
                               <Pencil size={14} />
                             </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               className="text-red-600 hover:text-red-800 hover:bg-red-100 h-7 px-2"
                               onClick={() => handleDeleteAngsuran(ang.id)}
                             >
@@ -643,8 +685,8 @@ export default function PinjamanPage() {
             />
             <div className="flex items-center gap-2 w-full md:w-auto">
               <label className="text-sm text-gray-500 whitespace-nowrap w-14 md:w-auto">Mulai:</label>
-              <Input 
-                type="date" 
+              <Input
+                type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 className="h-9 bg-white text-sm flex-1 md:w-auto"
@@ -652,8 +694,8 @@ export default function PinjamanPage() {
             </div>
             <div className="flex items-center gap-2 w-full md:w-auto">
               <label className="text-sm text-gray-500 whitespace-nowrap w-14 md:w-auto">Selesai:</label>
-              <Input 
-                type="date" 
+              <Input
+                type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 className="h-9 bg-white text-sm flex-1 md:w-auto"
@@ -708,8 +750,8 @@ export default function PinjamanPage() {
                       <td className="px-6 py-4 text-center">
                         <div className="flex justify-center gap-2 items-center">
                           {(item.status === 'BELUM_LUNAS' && sisaPokok > 0) && (
-                            <Button 
-                              variant="outline" 
+                            <Button
+                              variant="outline"
                               size="sm"
                               className="text-green-600 border-green-600 hover:bg-green-50 px-2"
                               onClick={() => {
@@ -726,16 +768,16 @@ export default function PinjamanPage() {
                               <HandCoins size={16} className="mr-1" /> Angsur
                             </Button>
                           )}
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => {
                               setSelectedPinjaman(item);
                               setShowDetail(true);
                               setShowAngsuran(false);
                               setShowForm(false);
                               window.scrollTo({ top: 0, behavior: 'smooth' });
-                            }} 
+                            }}
                             className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2"
                             title="Detail Angsuran"
                           >
@@ -789,7 +831,7 @@ export default function PinjamanPage() {
                       </Button>
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-3 text-sm border-t border-gray-100 pt-3 mt-2">
                     <div>
                       <p className="text-gray-500 text-[11px] uppercase tracking-wider font-medium mb-1">Awal Pinjam</p>
@@ -813,8 +855,8 @@ export default function PinjamanPage() {
                     </div>
                     {!isLunas && (
                       <div className="col-span-2 mt-2">
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           className="w-full text-green-600 border-green-600 hover:bg-green-50 mb-2"
                           onClick={() => {
@@ -832,8 +874,8 @@ export default function PinjamanPage() {
                       </div>
                     )}
                     <div className="col-span-2">
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="sm"
                         className="w-full text-blue-600 border-blue-600 hover:bg-blue-50"
                         onClick={() => {
@@ -891,15 +933,15 @@ export default function PinjamanPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
             <div className="bg-gradient-to-r from-blue-600 to-blue-800 p-4 text-white flex justify-between items-center">
-              <h3 className="font-bold text-lg flex items-center gap-2"><Printer size={18}/> Cetak Laporan Pinjaman</h3>
-              <button onClick={() => setShowPrintModal(false)} className="text-blue-100 hover:text-white"><X size={20}/></button>
+              <h3 className="font-bold text-lg flex items-center gap-2"><Printer size={18} /> Cetak Laporan Pinjaman</h3>
+              <button onClick={() => setShowPrintModal(false)} className="text-blue-100 hover:text-white"><X size={20} /></button>
             </div>
             <div className="p-6 space-y-4">
               {isAdmin && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Pilih Kelompok</label>
-                  <select 
-                    value={printKelompokId} 
+                  <select
+                    value={printKelompokId}
                     onChange={e => setPrintKelompokId(e.target.value)}
                     className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500"
                   >
@@ -910,12 +952,12 @@ export default function PinjamanPage() {
                   </select>
                 </div>
               )}
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Pilih Tahun</label>
-                  <select 
-                    value={printYear} 
+                  <select
+                    value={printYear}
                     onChange={e => setPrintYear(e.target.value)}
                     className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500"
                   >
@@ -927,8 +969,8 @@ export default function PinjamanPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Pilih Bulan (Tanggal Pinjam)</label>
-                  <select 
-                    value={printMonth} 
+                  <select
+                    value={printMonth}
                     onChange={e => setPrintMonth(e.target.value)}
                     className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500"
                   >
@@ -943,7 +985,7 @@ export default function PinjamanPage() {
             <div className="bg-gray-50 p-4 border-t flex justify-end gap-3">
               <Button variant="outline" onClick={() => setShowPrintModal(false)}>Batal</Button>
               <Button onClick={executePrint} className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2">
-                <Printer size={16}/>
+                <Printer size={16} />
                 Cetak Sekarang
               </Button>
             </div>

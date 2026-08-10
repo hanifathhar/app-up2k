@@ -42,11 +42,11 @@ export default function Header({
 
           <div>
             <h1 className="font-bold text-xl text-red-700">
-              {user?.level === 'admin' ? 'Aplikasi UP2K' : user?.kelompok?.nama_kelompok || user?.nama || 'Aplikasi UP2K'}
+              {user?.level === 'admin' ? 'Aplikasi UP2K' : user?.kelompok?.nama_kelompok || 'Berhepeng SMART'}
             </h1>
 
             <p className="text-xs text-gray-500 hidden md:block">
-              Usaha Peningkatan Pendapatan Keluarga
+              Sistem Manajemen Administrasi, Rekap dan Tracking
             </p>
           </div>
         </div>

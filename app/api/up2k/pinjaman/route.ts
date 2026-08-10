@@ -52,13 +52,16 @@ export async function POST(req: Request) {
       kelompokId = user.kelompokId;
     }
 
-    if (!kelompokId || !nama_peminjam || !tanggal_pinjam || !jumlah_pinjaman || !lama_angsuran) {
+    // Parse kelompokId to Int (form select mengirim sebagai String)
+    const parsedKelompokId = kelompokId ? parseInt(kelompokId) : null;
+
+    if (!parsedKelompokId || isNaN(parsedKelompokId) || !nama_peminjam || !tanggal_pinjam || !jumlah_pinjaman || !lama_angsuran) {
       return NextResponse.json({ error: "Data pinjaman tidak lengkap" }, { status: 400 });
     }
 
     const newPinjaman = await prisma.pinjaman.create({
       data: {
-        kelompokId,
+        kelompokId: parsedKelompokId,
         nama_peminjam,
         keperluan_usaha: keperluan_usaha || null,
         tanggal_pinjam: new Date(tanggal_pinjam),

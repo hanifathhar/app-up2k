@@ -134,11 +134,11 @@ export default function LoginPage() {
                 unoptimized
               />
               <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
-                Aplikasi UP2K
+                berhepeng
               </h1>
-              <p className="text-gray-500 mt-2 text-sm sm:text-base font-medium">
-                Usaha Peningkatan Pendapatan Keluarga
-              </p>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
+                SMART
+              </h2>
             </div>
           </div>
 

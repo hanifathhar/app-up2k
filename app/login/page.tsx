@@ -134,11 +134,11 @@ export default function LoginPage() {
                 unoptimized
               />
               <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
-                Aplikasi UP2K
+                berhepeng
               </h1>
-              <p className="text-gray-500 mt-2 text-sm sm:text-base font-medium">
-                Usaha Peningkatan Pendapatan Keluarga
-              </p>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
+                SMART
+              </h2>
             </div>
           </div>
 
@@ -229,7 +229,7 @@ export default function LoginPage() {
           {/* Footer Card */}
           <div className="mt-8 text-center">
             <p className="text-xs text-gray-500 font-medium">
-              © {new Date().getFullYear()} Aplikasi UP2K<br/>
+              © {new Date().getFullYear()} Aplikasi UP2K<br />
               Developed by Team TI Kab. Tapanuli Selatan
             </p>
           </div>
@@ -261,9 +261,8 @@ export default function LoginPage() {
             initial={{ opacity: 0, y: -20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className={`absolute top-8 left-1/2 -translate-x-1/2 w-[90%] max-w-sm px-4 py-3 rounded-2xl shadow-2xl text-white flex items-center gap-3 z-50 ${
-              notif.type === "success" ? "bg-emerald-500" : "bg-red-500"
-            }`}
+            className={`absolute top-8 left-1/2 -translate-x-1/2 w-[90%] max-w-sm px-4 py-3 rounded-2xl shadow-2xl text-white flex items-center gap-3 z-50 ${notif.type === "success" ? "bg-emerald-500" : "bg-red-500"
+              }`}
           >
             {notif.type === "success" ? (
               <CheckCircle size={20} className="shrink-0" />
@@ -277,4 +276,4 @@ export default function LoginPage() {
     </div>
   );
 }
-
+
