@@ -27,7 +27,7 @@ export default function BKUPage() {
   // Print Modal states
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [printKelompokId, setPrintKelompokId] = useState<string>("all");
-  const [printYear, setPrintYear] = useState<string>("all");
+  const [printYear, setPrintYear] = useState<string>("");
   const [printMonth, setPrintMonth] = useState<string>("all");
   
   const [isAdmin, setIsAdmin] = useState(false);
@@ -140,6 +140,23 @@ export default function BKUPage() {
     if (isAdmin && printKelompokId !== "all") {
       printData = printData.filter(item => item.kelompokId === Number(printKelompokId));
     }
+
+    // Hitung saldo awal = semua transaksi SEBELUM filter tahun/bulan
+    let saldoAwal = 0;
+    printData.forEach(item => {
+      const thn = new Date(item.tanggal).getFullYear();
+      const bln = new Date(item.tanggal).getMonth();
+      let isBeforePeriod = false;
+      if (printYear !== "all") {
+        if (thn < Number(printYear)) isBeforePeriod = true;
+        else if (thn === Number(printYear) && printMonth !== "all" && bln < Number(printMonth)) isBeforePeriod = true;
+      }
+      if (isBeforePeriod) {
+        saldoAwal += item.jenis === "PENERIMAAN" ? Number(item.jumlah) : -Number(item.jumlah);
+      }
+    });
+
+    // Terapkan filter tahun & bulan ke data yang dicetak
     if (printYear !== "all") {
       printData = printData.filter(item => new Date(item.tanggal).getFullYear() === Number(printYear));
     }
@@ -157,6 +174,36 @@ export default function BKUPage() {
        const selected = kelompokList.find(k => k.id === Number(printKelompokId));
        if (selected) headerKelompok = selected.nama_kelompok.toUpperCase();
     }
+
+    // Keterangan periode untuk judul
+    const namabulan = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+    let headerPeriode = "";
+    if (printYear !== "all" && printMonth !== "all") {
+      headerPeriode = `BULAN ${namabulan[Number(printMonth)].toUpperCase()} TAHUN ${printYear}`;
+    } else if (printYear !== "all") {
+      headerPeriode = `TAHUN ${printYear}`;
+    } else {
+      // Cari tahun terakhir dari seluruh data
+      let lastYear = 0;
+      bkuList.forEach(item => {
+        const y = new Date(item.tanggal).getFullYear();
+        if (y > lastYear) lastYear = y;
+      });
+      headerPeriode = lastYear > 0 ? `S/D TAHUN ${lastYear}` : "";
+    }
+
+    // Baris saldo awal
+    const saldoAwalRow = saldoAwal !== 0 || (printYear !== "all" || printMonth !== "all") ? `
+      <tr style="font-style: italic; background-color: #f9fafb;">
+        <td>${printData.length > 0 ? new Date(printData[0].tanggal).toLocaleDateString('id-ID') : "-"}</td>
+        <td class="text-left">Saldo Awal</td>
+        <td class="text-right">${saldoAwal >= 0 ? saldoAwal.toLocaleString('id-ID') : ''}</td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td class="text-right">${saldoAwal < 0 ? Math.abs(saldoAwal).toLocaleString('id-ID') : ''}</td>
+      </tr>
+    ` : "";
 
     let rowsHtml = "";
     printData.forEach(item => {
@@ -193,13 +240,15 @@ export default function BKUPage() {
       }
     });
 
+    const saldoAkhir = saldoAwal + totalPenerimaan - totalPengeluaran;
+
     printWindow.document.write(`
       <html>
         <head>
           <title>Cetak BKU</title>
           <style>
             body { font-family: 'Times New Roman', Times, serif; padding: 20px; color: #000; }
-            .header-title { text-align: center; font-weight: bold; margin-bottom: 20px; font-size: 16px; line-height: 1.2; }
+            .header-title { text-align: center; font-weight: bold; margin-bottom: 20px; font-size: 15px; line-height: 1.6; }
             table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: center; }
             th, td { border: 1px solid black; padding: 6px 4px; }
             th { font-weight: bold; }
@@ -210,9 +259,11 @@ export default function BKUPage() {
         </head>
         <body>
           <div class="header-title">
-            <div>BUKU KAS UP2K PKK - ${headerKelompok}</div>
+            <div>BUKU KAS UMUM (BKU) UP2K PKK</div>
+            <div>${headerKelompok}</div>
             <div>DESA SUGI KECAMATAN MARANCAR</div>
             <div>KABUPATEN TAPANULI SELATAN</div>
+            ${headerPeriode ? `<div>${headerPeriode}</div>` : ""}
           </div>
           
           <table>
@@ -232,12 +283,19 @@ export default function BKUPage() {
               </tr>
             </thead>
             <tbody>
+              ${saldoAwalRow}
               ${rowsHtml}
               <tr style="font-weight: bold;">
                 <td colspan="2">Jumlah</td>
                 <td class="text-right">${totalPenerimaan.toLocaleString('id-ID')}</td>
                 <td colspan="3">Jumlah</td>
                 <td class="text-right">${totalPengeluaran.toLocaleString('id-ID')}</td>
+              </tr>
+              <tr style="font-weight: bold; background-color: #f3f4f6;">
+                <td colspan="2">Saldo Akhir</td>
+                <td class="text-right">${saldoAkhir >= 0 ? saldoAkhir.toLocaleString('id-ID') : ''}</td>
+                <td colspan="3">Saldo Akhir</td>
+                <td class="text-right">${saldoAkhir < 0 ? Math.abs(saldoAkhir).toLocaleString('id-ID') : ''}</td>
               </tr>
             </tbody>
           </table>
@@ -271,6 +329,7 @@ export default function BKUPage() {
       setShowPrintModal(false);
     }, 250);
   };
+
 
   // --- Calculations ---
   const todayStr = new Date().toISOString().split("T")[0];
@@ -616,17 +675,22 @@ export default function BKUPage() {
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Pilih Tahun</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Pilih Tahun <span className="text-red-500">*</span>
+                  </label>
                   <select 
                     value={printYear} 
                     onChange={e => setPrintYear(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-red-500 focus:border-red-500"
+                    className={`w-full border rounded-lg p-2.5 focus:ring-red-500 focus:border-red-500 ${printYear === '' ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
                   >
-                    <option value="all">Semua Tahun</option>
+                    <option value="">-- Pilih Tahun --</option>
                     {availableYears.map(year => (
                       <option key={year} value={year}>{year}</option>
                     ))}
                   </select>
+                  {printYear === '' && (
+                    <p className="text-xs text-red-500 mt-1">Tahun wajib dipilih untuk mencetak laporan.</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Pilih Bulan</label>
@@ -645,7 +709,11 @@ export default function BKUPage() {
             </div>
             <div className="bg-gray-50 p-4 border-t flex justify-end gap-3">
               <Button variant="outline" onClick={() => setShowPrintModal(false)}>Batal</Button>
-              <Button onClick={executePrint} className="bg-red-600 hover:bg-red-700 text-white flex items-center gap-2">
+              <Button
+                onClick={executePrint}
+                disabled={printYear === ""}
+                className={`flex items-center gap-2 text-white ${printYear === '' ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'}`}
+              >
                 <Printer size={16}/>
                 Cetak Sekarang
               </Button>

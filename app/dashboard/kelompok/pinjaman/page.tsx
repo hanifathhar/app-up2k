@@ -43,8 +43,7 @@ export default function PinjamanPage() {
   // Print Modal states
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [printKelompokId, setPrintKelompokId] = useState<string>("all");
-  const [printYear, setPrintYear] = useState<string>("all");
-  const [printMonth, setPrintMonth] = useState<string>("all");
+  const [printYear, setPrintYear] = useState<string>("");
 
   const [isAdmin, setIsAdmin] = useState(false);
   const [kelompokList, setKelompokList] = useState<any[]>([]);
@@ -265,11 +264,8 @@ export default function PinjamanPage() {
     if (isAdmin && printKelompokId !== "all") {
       printData = printData.filter(item => item.kelompokId === Number(printKelompokId));
     }
-    if (printYear !== "all") {
+    if (printYear !== "" && printYear !== "all") {
       printData = printData.filter(item => new Date(item.tanggal_pinjam).getFullYear() === Number(printYear));
-    }
-    if (printMonth !== "all") {
-      printData = printData.filter(item => new Date(item.tanggal_pinjam).getMonth() === Number(printMonth));
     }
 
     let headerKelompok = "GABUNGAN SEMUA KELOMPOK";
@@ -280,6 +276,33 @@ export default function PinjamanPage() {
       if (selected) headerKelompok = selected.nama_kelompok.toUpperCase();
     }
 
+    // Tentukan keterangan tahun untuk judul laporan
+    let headerTahun = "";
+    if (printYear !== "" && printYear !== "all") {
+      // Cetak per tahun tertentu
+      headerTahun = `TAHUN ${printYear}`;
+    } else {
+      // Akumulasi semua tahun — cari tahun transaksi terakhir dari seluruh angsuran di printData
+      let lastYear = 0;
+      printData.forEach((item: any) => {
+        // Cek tahun pinjaman
+        const thnPinjam = new Date(item.tanggal_pinjam).getFullYear();
+        if (thnPinjam > lastYear) lastYear = thnPinjam;
+        // Cek tahun angsuran
+        item.angsuran.forEach((ang: any) => {
+          const thnAng = new Date(ang.tanggal).getFullYear();
+          if (thnAng > lastYear) lastYear = thnAng;
+        });
+      });
+      headerTahun = lastYear > 0 ? `S/D TAHUN ${lastYear}` : "";
+    }
+
+    // Akumulasi grand total per bulan
+    const grandTotal = {
+      jumlah_pinjaman: 0,
+      months: Array(12).fill(null).map(() => ({ angsuran: 0, iuran: 0, simpanan: 0 }))
+    };
+
     let rowsHtml = "";
     printData.forEach((item, idx) => {
       const monthsData = Array(12).fill(null).map(() => ({ angsuran: 0, iuran: 0, simpanan: 0 }));
@@ -288,6 +311,14 @@ export default function PinjamanPage() {
         monthsData[monthIndex].angsuran += Number(ang.angsuran_pokok);
         monthsData[monthIndex].iuran += Number(ang.iuran || 0);
         monthsData[monthIndex].simpanan += Number(ang.simpanan || 0);
+      });
+
+      // Akumulasi ke grand total
+      grandTotal.jumlah_pinjaman += Number(item.jumlah_pinjaman);
+      monthsData.forEach((data, mIdx) => {
+        grandTotal.months[mIdx].angsuran += data.angsuran;
+        grandTotal.months[mIdx].iuran += data.iuran;
+        grandTotal.months[mIdx].simpanan += data.simpanan;
       });
 
       let monthsHtml = "";
@@ -312,6 +343,25 @@ export default function PinjamanPage() {
       `;
     });
 
+    // Baris total keseluruhan
+    let totalMonthsHtml = "";
+    grandTotal.months.forEach(data => {
+      totalMonthsHtml += `
+        <td style="text-align: right; font-weight: bold;">${data.angsuran > 0 ? data.angsuran.toLocaleString("id-ID") : ""}</td>
+        <td style="text-align: right; font-weight: bold;">${data.iuran > 0 ? data.iuran.toLocaleString("id-ID") : ""}</td>
+        <td style="text-align: right; font-weight: bold;">${data.simpanan > 0 ? data.simpanan.toLocaleString("id-ID") : ""}</td>
+      `;
+    });
+
+    const totalRowHtml = `
+      <tr style="background-color: #f3f4f6; font-weight: bold;">
+        <td colspan="4" style="text-align: center; font-weight: bold;">JUMLAH TOTAL</td>
+        <td style="text-align: right; font-weight: bold;">${grandTotal.jumlah_pinjaman.toLocaleString("id-ID")}</td>
+        <td></td>
+        ${totalMonthsHtml}
+      </tr>
+    `;
+
     const monthsHeaders = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"]
       .map(month => `<th colspan="3">${month}</th>`)
       .join("");
@@ -333,10 +383,16 @@ export default function PinjamanPage() {
             table { border-collapse: collapse; width: 100%; font-size: 9px; }
             th, td { border: 1px solid black; padding: 2px 4px; text-align: center; }
             th { font-weight: bold; background-color: #f3f4f6; }
+            .total-row td { background-color: #e5e7eb; font-weight: bold; }
           </style>
         </head>
         <body>
-          <h1>BUKU DAFTAR PINJAMAN, ANGSURAN, IURAN DAN SIMPANAN POKSUS UP2K PKK ${headerKelompok} DESA SUGI KECAMATAN MARANCAR</h1>
+          <div style="text-align: center; margin-bottom: 20px;">
+            <div style="font-size: 13px; font-weight: bold; text-transform: uppercase;">BUKU DAFTAR PINJAMAN, ANGSURAN, IURAN DAN SIMPANAN</div>
+            <div style="font-size: 13px; font-weight: bold; text-transform: uppercase;">POKSUS UP2K PKK ${headerKelompok}</div>
+            <div style="font-size: 12px; font-weight: bold; text-transform: uppercase;">DESA SUGI KECAMATAN MARANCAR KABUPATEN TAPANULI SELATAN</div>
+            ${headerTahun ? `<div style="font-size: 12px; font-weight: bold;">${headerTahun}</div>` : ""}
+          </div>
           <table>
             <thead>
               <tr>
@@ -354,6 +410,7 @@ export default function PinjamanPage() {
             </thead>
             <tbody>
               ${rowsHtml}
+              ${totalRowHtml}
             </tbody>
           </table>
         </body>
@@ -369,6 +426,7 @@ export default function PinjamanPage() {
       setShowPrintModal(false);
     }, 250);
   };
+
 
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-6">
@@ -997,38 +1055,32 @@ export default function PinjamanPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Pilih Tahun</label>
-                  <select
-                    value={printYear}
-                    onChange={e => setPrintYear(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="all">Semua Tahun</option>
-                    {availableYears.map(year => (
-                      <option key={year} value={year}>{year}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Pilih Bulan (Tanggal Pinjam)</label>
-                  <select
-                    value={printMonth}
-                    onChange={e => setPrintMonth(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="all">Semua Bulan</option>
-                    {availableMonths.map(m => (
-                      <option key={m.value} value={m.value}>{m.label}</option>
-                    ))}
-                  </select>
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Pilih Tahun <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={printYear}
+                  onChange={e => setPrintYear(e.target.value)}
+                  className={`w-full border rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 ${printYear === '' ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+                >
+                  <option value="">-- Pilih Tahun --</option>
+                  {availableYears.map(year => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
+                {printYear === '' && (
+                  <p className="text-xs text-red-500 mt-1">Tahun wajib dipilih untuk mencetak laporan.</p>
+                )}
               </div>
             </div>
             <div className="bg-gray-50 p-4 border-t flex justify-end gap-3">
               <Button variant="outline" onClick={() => setShowPrintModal(false)}>Batal</Button>
-              <Button onClick={executePrint} className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2">
+              <Button
+                onClick={executePrint}
+                disabled={printYear === ""}
+                className={`flex items-center gap-2 text-white ${printYear === '' ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+              >
                 <Printer size={16} />
                 Cetak Sekarang
               </Button>
