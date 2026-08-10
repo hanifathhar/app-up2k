@@ -47,6 +47,7 @@ export default function PinjamanPage() {
 
   const [isAdmin, setIsAdmin] = useState(false);
   const [kelompokList, setKelompokList] = useState<any[]>([]);
+  const [filterKelompokId, setFilterKelompokId] = useState<string>("all");
 
   const fetchPinjaman = async () => {
     setLoading(true);
@@ -90,7 +91,7 @@ export default function PinjamanPage() {
   // Reset page when filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [startDate, endDate, searchName]);
+  }, [startDate, endDate, searchName, filterKelompokId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -241,6 +242,7 @@ export default function PinjamanPage() {
 
   // --- Filter and Pagination ---
   const filteredPinjamanList = pinjamanList.filter(item => {
+    if (isAdmin && filterKelompokId !== "all" && item.kelompokId !== Number(filterKelompokId)) return false;
     const itemDate = new Date(item.tanggal_pinjam).toISOString().split("T")[0];
     if (startDate && itemDate < startDate) return false;
     if (endDate && itemDate > endDate) return false;
@@ -735,6 +737,18 @@ export default function PinjamanPage() {
         <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <h3 className="font-medium text-gray-700">Daftar Pinjaman</h3>
           <div className="flex flex-col md:flex-row items-start md:items-center gap-3 w-full md:w-auto">
+            {isAdmin && (
+              <select
+                value={filterKelompokId}
+                onChange={(e) => setFilterKelompokId(e.target.value)}
+                className="h-9 bg-white text-sm border border-gray-200 rounded-md px-2 w-full md:w-48 text-gray-700 focus:ring-1 focus:ring-purple-400 focus:border-purple-400"
+              >
+                <option value="all">Semua Kelompok</option>
+                {kelompokList.map((kel: any) => (
+                  <option key={kel.id} value={kel.id}>{kel.nama_kelompok}</option>
+                ))}
+              </select>
+            )}
             <Input
               placeholder="Cari nama..."
               value={searchName}

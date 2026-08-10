@@ -18,6 +18,7 @@ export default function SimpananPage() {
   const [searchName, setSearchName] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [filterKelompokId, setFilterKelompokId] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -71,11 +72,12 @@ export default function SimpananPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchName, startDate, endDate]);
+  }, [searchName, startDate, endDate, filterKelompokId]);
 
   // Filter hanya angsuran yang punya simpanan > 0
   const filtered = angsuranList.filter((item) => {
     if (Number(item.simpanan) <= 0) return false;
+    if (isAdmin && filterKelompokId !== "all" && item.pinjaman?.kelompokId !== Number(filterKelompokId)) return false;
     const itemDate = new Date(item.tanggal).toISOString().split("T")[0];
     if (startDate && itemDate < startDate) return false;
     if (endDate && itemDate > endDate) return false;
@@ -259,6 +261,18 @@ export default function SimpananPage() {
         <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <h3 className="font-medium text-gray-700">Daftar Pembayaran Simpanan</h3>
           <div className="flex flex-col md:flex-row items-start md:items-center gap-3 w-full md:w-auto">
+            {isAdmin && (
+              <select
+                value={filterKelompokId}
+                onChange={(e) => setFilterKelompokId(e.target.value)}
+                className="h-9 bg-white text-sm border border-gray-200 rounded-md px-2 w-full md:w-48 text-gray-700 focus:ring-1 focus:ring-teal-400 focus:border-teal-400"
+              >
+                <option value="all">Semua Kelompok</option>
+                {kelompokList.map((kel) => (
+                  <option key={kel.id} value={kel.id}>{kel.nama_kelompok}</option>
+                ))}
+              </select>
+            )}
             <Input
               placeholder="Cari nama..."
               value={searchName}

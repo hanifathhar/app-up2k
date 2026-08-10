@@ -59,6 +59,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Semua field wajib diisi" }, { status: 400 });
     }
 
+    // Ensure kelompokId is an integer (may come as string from form)
+    kelompokId = parseInt(String(kelompokId), 10);
+
     // Get the latest balance (saldo) for the kelompok
     const lastBku = await prisma.bukuKasUmum.findFirst({
       where: { kelompokId },

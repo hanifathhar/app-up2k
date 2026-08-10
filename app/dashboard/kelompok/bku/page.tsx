@@ -14,7 +14,8 @@ export default function BKUPage() {
     tanggal: new Date().toISOString().split("T")[0],
     uraian: "",
     jenis: "PENERIMAAN",
-    jumlah: ""
+    jumlah: "",
+    kelompokId: ""
   });
 
   // Filter and Pagination states
@@ -29,6 +30,7 @@ export default function BKUPage() {
   const [printKelompokId, setPrintKelompokId] = useState<string>("all");
   const [printYear, setPrintYear] = useState<string>("");
   const [printMonth, setPrintMonth] = useState<string>("all");
+  const [filterKelompokId, setFilterKelompokId] = useState<string>("all");
 
   const [isAdmin, setIsAdmin] = useState(false);
   const [kelompokList, setKelompokList] = useState<any[]>([]);
@@ -75,7 +77,7 @@ export default function BKUPage() {
   // Reset page when filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [startDate, endDate, searchUraian]);
+  }, [startDate, endDate, searchUraian, filterKelompokId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,7 +92,7 @@ export default function BKUPage() {
       if (res.ok) {
         setShowForm(false);
         setEditId(null);
-        setFormData({ ...formData, uraian: "", jumlah: "" });
+        setFormData({ ...formData, uraian: "", jumlah: "", kelompokId: "" });
         fetchBku();
       } else {
         const error = await res.json();
@@ -107,7 +109,8 @@ export default function BKUPage() {
       tanggal: new Date(item.tanggal).toISOString().split("T")[0],
       uraian: item.uraian,
       jenis: item.jenis,
-      jumlah: item.jumlah.toString()
+      jumlah: item.jumlah.toString(),
+      kelompokId: item.kelompokId?.toString() || ""
     });
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -366,6 +369,7 @@ export default function BKUPage() {
 
   // --- Filter and Pagination ---
   const filteredBkuList = bkuList.filter(item => {
+    if (isAdmin && filterKelompokId !== "all" && item.kelompokId !== Number(filterKelompokId)) return false;
     const itemDate = new Date(item.tanggal).toISOString().split("T")[0];
     if (startDate && itemDate < startDate) return false;
     if (endDate && itemDate > endDate) return false;
@@ -393,7 +397,7 @@ export default function BKUPage() {
           </Button>
           <Button onClick={() => {
             setEditId(null);
-            setFormData({ tanggal: todayStr, uraian: "", jenis: "PENERIMAAN", jumlah: "" });
+            setFormData({ tanggal: todayStr, uraian: "", jenis: "PENERIMAAN", jumlah: "", kelompokId: "" });
             setShowForm(!showForm);
           }} className="bg-red-600 hover:bg-red-700 text-white">
             {showForm ? <><X size={18} className="mr-2" /> Batal</> : <><PlusCircle className="mr-2" size={18} /> Input Transaksi</>}
@@ -438,6 +442,22 @@ export default function BKUPage() {
         <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
           <h2 className="font-semibold text-lg">{editId ? "Edit Transaksi" : "Input Transaksi Baru"}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {isAdmin && (
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700">Kelompok <span className="text-red-500">*</span></label>
+                <select
+                  required
+                  className="mt-1 block w-full p-2 border border-gray-300 rounded-md bg-white"
+                  value={formData.kelompokId}
+                  onChange={e => setFormData({ ...formData, kelompokId: e.target.value })}
+                >
+                  <option value="">-- Pilih Kelompok --</option>
+                  {kelompokList.map((kel: any) => (
+                    <option key={kel.id} value={kel.id}>{kel.nama_kelompok}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700">Tanggal</label>
               <input
@@ -492,6 +512,18 @@ export default function BKUPage() {
         <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row justify-between items-center gap-4">
           <h3 className="font-medium text-gray-700">Daftar Transaksi</h3>
           <div className="flex flex-col md:flex-row items-start md:items-center gap-3 w-full md:w-auto mt-3 md:mt-0">
+            {isAdmin && (
+              <select
+                value={filterKelompokId}
+                onChange={(e) => setFilterKelompokId(e.target.value)}
+                className="h-9 bg-white text-sm border border-gray-200 rounded-md px-2 w-full md:w-48 text-gray-700 focus:ring-1 focus:ring-red-400 focus:border-red-400"
+              >
+                <option value="all">Semua Kelompok</option>
+                {kelompokList.map(kel => (
+                  <option key={kel.id} value={kel.id}>{kel.nama_kelompok}</option>
+                ))}
+              </select>
+            )}
             <Input
               placeholder="Cari uraian..."
               value={searchUraian}
