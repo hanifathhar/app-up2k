@@ -9,21 +9,71 @@ datasource db {
 }
 
 model Pengguna {
-  id         Int         @id @default(autoincrement())
+  id         Int       @id @default(autoincrement())
   nama       String
   no_tlp     String
-  username   String      @unique
+  username   String    @unique
   pasword    String
   level      level
-  dibuatPada DateTime    @default(now())
-  
+  dibuatPada DateTime  @default(now())
   kelompokId Int?
-  kelompok   Kelompok?   @relation(fields: [kelompokId], references: [id])
+  kelompok   Kelompok? @relation(fields: [kelompokId], references: [id])
 }
 
-// ==========================================
-// UP2K Models
-// ==========================================
+model Kelompok {
+  id            Int           @id @default(autoincrement())
+  nama_kelompok String
+  desa          String?
+  ketua         String?
+  bendahara     String?
+  dibuatPada    DateTime      @default(now())
+  bku           BukuKasUmum[]
+  pengguna      Pengguna[]
+  pinjaman      Pinjaman[]
+}
+
+model BukuKasUmum {
+  id         Int            @id @default(autoincrement())
+  kelompokId Int
+  tanggal    DateTime       @default(now())
+  uraian     String
+  jenis      JenisTransaksi
+  jumlah     Decimal        @db.Decimal(15, 2)
+  saldo      Decimal        @db.Decimal(15, 2)
+  dibuatPada DateTime       @default(now())
+  diubahPada DateTime       @updatedAt
+  kelompok   Kelompok       @relation(fields: [kelompokId], references: [id], onDelete: Cascade)
+}
+
+model Pinjaman {
+  id              Int            @id @default(autoincrement())
+  kelompokId      Int
+  nama_peminjam   String
+  tanggal_pinjam  DateTime       @default(now())
+  jumlah_pinjaman Decimal        @db.Decimal(15, 2)
+  lama_angsuran   Int
+  jasa            Decimal        @default(0) @db.Decimal(15, 2)
+  status          StatusPinjaman @default(BELUM_LUNAS)
+  dibuatPada      DateTime       @default(now())
+  diubahPada      DateTime       @updatedAt
+  keperluan_usaha String?
+  angsuran        Angsuran[]
+  kelompok        Kelompok       @relation(fields: [kelompokId], references: [id], onDelete: Cascade)
+}
+
+model Angsuran {
+  id             Int      @id @default(autoincrement())
+  pinjamanId     Int
+  tanggal        DateTime @default(now())
+  angsuran_ke    Int
+  angsuran_pokok Decimal  @db.Decimal(15, 2)
+  jasa           Decimal  @db.Decimal(15, 2)
+  sisa_pinjaman  Decimal  @db.Decimal(15, 2)
+  dibuatPada     DateTime @default(now())
+  iuran          Decimal  @default(0) @db.Decimal(15, 2)
+  simpanan       Decimal  @default(0) @db.Decimal(15, 2)
+  pinjaman       Pinjaman @relation(fields: [pinjamanId], references: [id], onDelete: Cascade)
+}
 
 enum level {
   superadmin
@@ -31,70 +81,12 @@ enum level {
   up2k_kelompok
 }
 
-model Kelompok {
-  id            Int      @id @default(autoincrement())
-  nama_kelompok String
-  desa          String?
-  ketua         String?
-  dibuatPada    DateTime @default(now())
-  
-  pengguna      Pengguna[]
-  bku           BukuKasUmum[]
-  pinjaman      Pinjaman[]
-}
-
 enum JenisTransaksi {
   PENERIMAAN
   PENGELUARAN
 }
 
-model BukuKasUmum {
-  id          Int      @id @default(autoincrement())
-  kelompokId  Int
-  kelompok    Kelompok @relation(fields: [kelompokId], references: [id], onDelete: Cascade)
-  tanggal     DateTime @default(now())
-  uraian      String
-  jenis       JenisTransaksi
-  jumlah      Decimal  @db.Decimal(15, 2)
-  saldo       Decimal  @db.Decimal(15, 2)
-  
-  dibuatPada  DateTime @default(now())
-  diubahPada  DateTime @updatedAt
-}
-
 enum StatusPinjaman {
   BELUM_LUNAS
   LUNAS
-}
-
-model Pinjaman {
-  id              Int      @id @default(autoincrement())
-  kelompokId      Int
-  kelompok        Kelompok @relation(fields: [kelompokId], references: [id], onDelete: Cascade)
-  nama_peminjam   String
-  keperluan_usaha String?
-  tanggal_pinjam  DateTime @default(now())
-  jumlah_pinjaman Decimal  @db.Decimal(15, 2)
-  lama_angsuran   Int      // Dalam bulan
-  jasa            Decimal  @default(0) @db.Decimal(15, 2) // Persentase atau nominal jasa
-  status          StatusPinjaman @default(BELUM_LUNAS)
-  
-  angsuran        Angsuran[]
-  dibuatPada      DateTime @default(now())
-  diubahPada      DateTime @updatedAt
-}
-
-model Angsuran {
-  id              Int      @id @default(autoincrement())
-  pinjamanId      Int
-  pinjaman        Pinjaman @relation(fields: [pinjamanId], references: [id], onDelete: Cascade)
-  tanggal         DateTime @default(now())
-  angsuran_ke     Int
-  angsuran_pokok  Decimal  @db.Decimal(15, 2)
-  jasa            Decimal  @db.Decimal(15, 2)
-  iuran           Decimal  @default(0) @db.Decimal(15, 2)
-  simpanan        Decimal  @default(0) @db.Decimal(15, 2)
-  sisa_pinjaman   Decimal  @db.Decimal(15, 2)
-  
-  dibuatPada      DateTime @default(now())
 }

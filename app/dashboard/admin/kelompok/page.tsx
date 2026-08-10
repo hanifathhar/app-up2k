@@ -21,6 +21,7 @@ export default function ManajemenKelompokPage() {
   const [namaKelompok, setNamaKelompok] = useState("");
   const [desa, setDesa] = useState("");
   const [ketua, setKetua] = useState("");
+  const [bendahara, setBendahara] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -54,6 +55,7 @@ export default function ManajemenKelompokPage() {
     setNamaKelompok("");
     setDesa("");
     setKetua("");
+    setBendahara("");
     setError("");
     setSuccess("");
     setShowForm(true);
@@ -64,6 +66,7 @@ export default function ManajemenKelompokPage() {
     setNamaKelompok(k.nama_kelompok);
     setDesa(k.desa || "");
     setKetua(k.ketua || "");
+    setBendahara(k.bendahara || "");
     setError("");
     setSuccess("");
     setShowForm(true);
@@ -105,7 +108,7 @@ export default function ManajemenKelompokPage() {
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nama_kelompok: namaKelompok, desa, ketua }),
+        body: JSON.stringify({ nama_kelompok: namaKelompok, desa, ketua, bendahara }),
       });
 
       const data = await res.json();
@@ -127,7 +130,8 @@ export default function ManajemenKelompokPage() {
   const filteredKelompok = kelompok.filter(k => 
     k.nama_kelompok.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (k.desa && k.desa.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (k.ketua && k.ketua.toLowerCase().includes(searchQuery.toLowerCase()))
+    (k.ketua && k.ketua.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (k.bendahara && k.bendahara.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   // Pagination Logic
@@ -202,6 +206,16 @@ export default function ManajemenKelompokPage() {
                 className="mt-1"
               />
             </div>
+            <div>
+              <Label htmlFor="bendahara">Nama Bendahara</Label>
+              <Input
+                id="bendahara"
+                value={bendahara}
+                onChange={(e) => setBendahara(e.target.value)}
+                placeholder="Contoh: Ibu Sari"
+                className="mt-1"
+              />
+            </div>
             <div className="pt-2">
               <Button type="submit" disabled={submitting} className="w-full bg-red-600 hover:bg-red-700">
                 {submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Menyimpan...</> : "Simpan Kelompok"}
@@ -233,6 +247,7 @@ export default function ManajemenKelompokPage() {
                 <th className="px-6 py-4">Nama Kelompok</th>
                 <th className="px-6 py-4">Desa/Kelurahan</th>
                 <th className="px-6 py-4">Ketua</th>
+                <th className="px-6 py-4">Bendahara</th>
                 <th className="px-6 py-4">Tanggal Dibuat</th>
                 <th className="px-6 py-4 text-center">Aksi</th>
               </tr>
@@ -240,14 +255,14 @@ export default function ManajemenKelompokPage() {
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
                     <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-red-500" />
                     Memuat data...
                   </td>
                 </tr>
               ) : paginatedKelompok.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
                     Belum ada data kelompok atau pencarian tidak ditemukan.
                   </td>
                 </tr>
@@ -258,6 +273,7 @@ export default function ManajemenKelompokPage() {
                     <td className="px-6 py-4 font-medium text-gray-800">{item.nama_kelompok}</td>
                     <td className="px-6 py-4">{item.desa || "-"}</td>
                     <td className="px-6 py-4">{item.ketua || "-"}</td>
+                    <td className="px-6 py-4">{item.bendahara || "-"}</td>
                     <td className="px-6 py-4 text-gray-500">
                       {new Date(item.dibuatPada).toLocaleDateString("id-ID")}
                     </td>

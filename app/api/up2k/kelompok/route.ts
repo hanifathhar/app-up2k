@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { nama_kelompok, desa, ketua } = body;
+    const { nama_kelompok, desa, ketua, bendahara } = body;
 
     if (!nama_kelompok) {
       return NextResponse.json({ error: "Nama kelompok wajib diisi" }, { status: 400 });
@@ -38,6 +38,7 @@ export async function POST(req: Request) {
         nama_kelompok,
         desa,
         ketua,
+        bendahara,
       },
     });
 

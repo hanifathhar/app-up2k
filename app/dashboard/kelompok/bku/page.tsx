@@ -29,7 +29,7 @@ export default function BKUPage() {
   const [printKelompokId, setPrintKelompokId] = useState<string>("all");
   const [printYear, setPrintYear] = useState<string>("");
   const [printMonth, setPrintMonth] = useState<string>("all");
-  
+
   const [isAdmin, setIsAdmin] = useState(false);
   const [kelompokList, setKelompokList] = useState<any[]>([]);
 
@@ -42,16 +42,16 @@ export default function BKUPage() {
       ]);
       const meData = await meRes.json();
       const data = await bkuRes.json();
-      
+
       const adminStatus = meData.user?.level === 'admin' || meData.user?.level === 'superadmin' || meData.user?.level === 'up2k_admin';
       setIsAdmin(adminStatus);
-      
+
       if (adminStatus) {
         const kelRes = await fetch("/api/up2k/kelompok");
         const kelData = await kelRes.json();
         if (!kelData.error) setKelompokList(kelData);
       }
-      
+
       if (!data.error) setBkuList(data);
     } catch (err) {
       console.error(err);
@@ -168,15 +168,28 @@ export default function BKUPage() {
     let totalPengeluaran = 0;
 
     let headerKelompok = "GABUNGAN SEMUA KELOMPOK";
+    let namaKetua = "";
+    let namaBendahara = "";
+    let namaKelompokSign = "Kelompok UP2K PKK";
+
     if (!isAdmin) {
-       headerKelompok = bkuList.length > 0 && bkuList[0].kelompok?.nama_kelompok ? bkuList[0].kelompok.nama_kelompok.toUpperCase() : "KELOMPOK UP2K";
+      const kel = bkuList.length > 0 ? bkuList[0].kelompok : null;
+      headerKelompok = kel?.nama_kelompok ? kel.nama_kelompok.toUpperCase() : "KELOMPOK UP2K";
+      namaKetua = kel?.ketua || "";
+      namaBendahara = kel?.bendahara || "";
+      namaKelompokSign = kel?.nama_kelompok || "Kelompok UP2K PKK";
     } else if (printKelompokId !== "all") {
-       const selected = kelompokList.find(k => k.id === Number(printKelompokId));
-       if (selected) headerKelompok = selected.nama_kelompok.toUpperCase();
+      const selected = kelompokList.find((k: any) => k.id === Number(printKelompokId));
+      if (selected) {
+        headerKelompok = selected.nama_kelompok.toUpperCase();
+        namaKetua = selected.ketua || "";
+        namaBendahara = selected.bendahara || "";
+        namaKelompokSign = selected.nama_kelompok || "Kelompok UP2K PKK";
+      }
     }
 
     // Keterangan periode untuk judul
-    const namabulan = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+    const namabulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
     let headerPeriode = "";
     if (printYear !== "all" && printMonth !== "all") {
       headerPeriode = `BULAN ${namabulan[Number(printMonth)].toUpperCase()} TAHUN ${printYear}`;
@@ -303,25 +316,26 @@ export default function BKUPage() {
           <div class="signatures">
             <div>
               <div>Mengetahui</div>
-              <div>Ketua Poksus UP2K PKK</div>
+              <div>Ketua Kelompok</div>
+              <div>${namaKelompokSign}</div>
               <br/><br/><br/><br/>
-              <div style="font-weight: bold; text-decoration: underline;">Emmida</div>
+              <div style="font-weight: bold; text-decoration: underline;">${namaKetua || '..............................'}</div>
             </div>
             <div>
               <div>Sugi, ....................................</div>
-              <div>Kelompok UP2K PKK</div>
+              <div>${namaKelompokSign}</div>
               <div>Bendahara</div>
               <br/><br/><br/><br/>
-              <div style="font-weight: bold; text-decoration: underline;">Ratna Mutia</div>
+              <div style="font-weight: bold; text-decoration: underline;">${namaBendahara || '..............................'}</div>
             </div>
           </div>
         </body>
       </html>
     `);
-    
+
     printWindow.document.close();
     printWindow.focus();
-    
+
     // Add small delay to ensure rendering before print dialog
     setTimeout(() => {
       printWindow.print();
@@ -340,7 +354,7 @@ export default function BKUPage() {
   bkuList.forEach(item => {
     const jumlah = Number(item.jumlah);
     const itemDate = new Date(item.tanggal).toISOString().split("T")[0];
-    
+
     if (item.jenis === "PENERIMAAN") {
       saldoTotal += jumlah;
       if (itemDate === todayStr) penerimaanHariIni += jumlah;
@@ -382,7 +396,7 @@ export default function BKUPage() {
             setFormData({ tanggal: todayStr, uraian: "", jenis: "PENERIMAAN", jumlah: "" });
             setShowForm(!showForm);
           }} className="bg-red-600 hover:bg-red-700 text-white">
-            {showForm ? <><X size={18} className="mr-2"/> Batal</> : <><PlusCircle className="mr-2" size={18} /> Input Transaksi</>}
+            {showForm ? <><X size={18} className="mr-2" /> Batal</> : <><PlusCircle className="mr-2" size={18} /> Input Transaksi</>}
           </Button>
         </div>
       </div>
@@ -398,7 +412,7 @@ export default function BKUPage() {
             <h3 className="text-xl font-bold text-gray-800">Rp {penerimaanHariIni.toLocaleString("id-ID")}</h3>
           </div>
         </div>
-        
+
         <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
           <div className="p-3 bg-red-100 text-red-600 rounded-lg">
             <ArrowUpFromLine size={24} />
@@ -426,20 +440,20 @@ export default function BKUPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">Tanggal</label>
-              <input 
-                type="date" 
+              <input
+                type="date"
                 required
                 className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                 value={formData.tanggal}
-                onChange={e => setFormData({...formData, tanggal: e.target.value})}
+                onChange={e => setFormData({ ...formData, tanggal: e.target.value })}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Jenis Transaksi</label>
-              <select 
+              <select
                 className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                 value={formData.jenis}
-                onChange={e => setFormData({...formData, jenis: e.target.value})}
+                onChange={e => setFormData({ ...formData, jenis: e.target.value })}
               >
                 <option value="PENERIMAAN">Penerimaan</option>
                 <option value="PENGELUARAN">Pengeluaran</option>
@@ -447,22 +461,22 @@ export default function BKUPage() {
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700">Uraian / Keterangan</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 required
                 className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                 value={formData.uraian}
-                onChange={e => setFormData({...formData, uraian: e.target.value})}
+                onChange={e => setFormData({ ...formData, uraian: e.target.value })}
               />
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700">Jumlah (Rp)</label>
-              <input 
-                type="number" 
+              <input
+                type="number"
                 required min="1"
                 className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                 value={formData.jumlah}
-                onChange={e => setFormData({...formData, jumlah: e.target.value})}
+                onChange={e => setFormData({ ...formData, jumlah: e.target.value })}
               />
             </div>
           </div>
@@ -486,8 +500,8 @@ export default function BKUPage() {
             />
             <div className="flex items-center gap-2 w-full md:w-auto">
               <label className="text-sm text-gray-500 whitespace-nowrap w-14 md:w-auto">Mulai:</label>
-              <Input 
-                type="date" 
+              <Input
+                type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 className="h-9 bg-white text-sm flex-1 md:w-auto"
@@ -495,8 +509,8 @@ export default function BKUPage() {
             </div>
             <div className="flex items-center gap-2 w-full md:w-auto">
               <label className="text-sm text-gray-500 whitespace-nowrap w-14 md:w-auto">Selesai:</label>
-              <Input 
-                type="date" 
+              <Input
+                type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 className="h-9 bg-white text-sm flex-1 md:w-auto"
@@ -586,9 +600,9 @@ export default function BKUPage() {
                     </Button>
                   </div>
                 </div>
-                
+
                 <p className="font-medium text-gray-800 text-sm mb-3 leading-relaxed">{item.uraian}</p>
-                
+
                 <div className="grid grid-cols-2 gap-3 text-sm border-t border-gray-100 pt-3">
                   <div>
                     <p className="text-gray-500 text-[11px] uppercase tracking-wider font-medium mb-1">Penerimaan</p>
@@ -653,15 +667,15 @@ export default function BKUPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
             <div className="bg-gradient-to-r from-red-600 to-red-800 p-4 text-white flex justify-between items-center">
-              <h3 className="font-bold text-lg flex items-center gap-2"><Printer size={18}/> Cetak Laporan BKU</h3>
-              <button onClick={() => setShowPrintModal(false)} className="text-red-100 hover:text-white"><X size={20}/></button>
+              <h3 className="font-bold text-lg flex items-center gap-2"><Printer size={18} /> Cetak Laporan BKU</h3>
+              <button onClick={() => setShowPrintModal(false)} className="text-red-100 hover:text-white"><X size={20} /></button>
             </div>
             <div className="p-6 space-y-4">
               {isAdmin && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Pilih Kelompok</label>
-                  <select 
-                    value={printKelompokId} 
+                  <select
+                    value={printKelompokId}
                     onChange={e => setPrintKelompokId(e.target.value)}
                     className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-red-500 focus:border-red-500"
                   >
@@ -672,14 +686,14 @@ export default function BKUPage() {
                   </select>
                 </div>
               )}
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Pilih Tahun <span className="text-red-500">*</span>
                   </label>
-                  <select 
-                    value={printYear} 
+                  <select
+                    value={printYear}
                     onChange={e => setPrintYear(e.target.value)}
                     className={`w-full border rounded-lg p-2.5 focus:ring-red-500 focus:border-red-500 ${printYear === '' ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
                   >
@@ -694,8 +708,8 @@ export default function BKUPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Pilih Bulan</label>
-                  <select 
-                    value={printMonth} 
+                  <select
+                    value={printMonth}
                     onChange={e => setPrintMonth(e.target.value)}
                     className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-red-500 focus:border-red-500"
                   >
@@ -714,7 +728,7 @@ export default function BKUPage() {
                 disabled={printYear === ""}
                 className={`flex items-center gap-2 text-white ${printYear === '' ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'}`}
               >
-                <Printer size={16}/>
+                <Printer size={16} />
                 Cetak Sekarang
               </Button>
             </div>
