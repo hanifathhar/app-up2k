@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BarChart3, Users, CreditCard, Activity, Trophy } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
@@ -8,8 +8,45 @@ export default function UP2KAdminDashboard() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [tahun, setTahun] = useState<string>("all");
+  const [chartWidth, setChartWidth] = useState(600);
+  const chartRef = useRef<HTMLDivElement>(null);
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
+
+  // Responsive: track container width
+  useEffect(() => {
+    const update = () => {
+      if (chartRef.current) setChartWidth(chartRef.current.offsetWidth);
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
+  const isMobile = chartWidth < 540;
+  const yAxisWidth = isMobile ? Math.min(chartWidth * 0.42, 140) : 185;
+  const chartMargin = { top: 5, right: isMobile ? 8 : 30, left: 0, bottom: 5 };
+
+  // Custom YAxis tick: truncate on mobile
+  const CustomYAxisTick = ({ x, y, payload }: any) => {
+    const maxLen = isMobile ? 18 : 38;
+    const label = payload.value.length > maxLen
+      ? payload.value.slice(0, maxLen - 1) + '…'
+      : payload.value;
+    return (
+      <text
+        x={x}
+        y={y}
+        dy={4}
+        textAnchor="end"
+        fill="#374151"
+        fontSize={isMobile ? 10 : 12}
+        fontWeight={500}
+      >
+        {label}
+      </text>
+    );
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -119,34 +156,46 @@ export default function UP2KAdminDashboard() {
             {years.map(y => <option key={y} value={y}>{y}</option>)}
           </select>
         </div>
-        <div className="h-[400px] w-full">
+        <div
+          ref={chartRef}
+          className="w-full overflow-y-auto"
+          style={{ height: Math.max(isMobile ? 300 : 400, (data.kelompokStats?.length || 1) * (isMobile ? 60 : 76) + 60) }}
+        >
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
+              layout="vertical"
               data={data.kelompokStats}
-              margin={{ top: 10, right: 10, left: 20, bottom: 20 }}
+              margin={chartMargin}
+              barCategoryGap="28%"
             >
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#eee" />
               <XAxis
-                dataKey="nama_kelompok"
-                tick={{ fill: '#6b7280', fontSize: 12 }}
+                type="number"
+                tickFormatter={(val) =>
+                  isMobile
+                    ? `${(val / 1000000).toFixed(0)}M`
+                    : `Rp ${(val / 1000000).toFixed(0)}M`
+                }
+                tick={{ fill: '#6b7280', fontSize: isMobile ? 9 : 11 }}
                 axisLine={false}
                 tickLine={false}
-                dy={10}
               />
               <YAxis
-                tickFormatter={(val) => `Rp ${(val / 1000000).toFixed(0)}M`}
-                tick={{ fill: '#6b7280', fontSize: 12 }}
+                type="category"
+                dataKey="nama_kelompok"
+                tick={<CustomYAxisTick />}
                 axisLine={false}
                 tickLine={false}
+                width={yAxisWidth}
               />
               <Tooltip
-                formatter={(val: any) => typeof val === 'number' ? `Rp ${val.toLocaleString()}` : val}
+                formatter={(val: any) => typeof val === 'number' ? `Rp ${val.toLocaleString('id-ID')}` : val}
                 cursor={{ fill: '#f3f4f6' }}
-                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: isMobile ? 11 : 13 }}
               />
-              <Legend wrapperStyle={{ paddingTop: '20px' }} />
-              <Bar dataKey="penerimaan" name="Penerimaan" fill="#22c55e" radius={[4, 4, 0, 0]} maxBarSize={50} />
-              <Bar dataKey="pengeluaran" name="Pengeluaran" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={50} />
+              <Legend wrapperStyle={{ paddingBottom: '10px', fontSize: isMobile ? 11 : 13 }} />
+              <Bar dataKey="penerimaan" name="Penerimaan" fill="#22c55e" radius={[0, 4, 4, 0]} maxBarSize={isMobile ? 18 : 26} />
+              <Bar dataKey="pengeluaran" name="Pengeluaran" fill="#ef4444" radius={[0, 4, 4, 0]} maxBarSize={isMobile ? 18 : 26} />
             </BarChart>
           </ResponsiveContainer>
         </div>
