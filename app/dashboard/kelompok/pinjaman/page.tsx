@@ -498,7 +498,7 @@ export default function PinjamanPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700">Jumlah Pinjaman (Rp)</label>
               <input
-                type="number" required min="1"
+                type="number" required min="0"
                 className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                 value={formData.jumlah_pinjaman}
                 onChange={e => setFormData({ ...formData, jumlah_pinjaman: e.target.value })}
@@ -507,7 +507,7 @@ export default function PinjamanPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700">Lama Angsuran (Bulan)</label>
               <input
-                type="number" required min="1"
+                type="number" required min="0"
                 className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                 value={formData.lama_angsuran}
                 onChange={e => setFormData({ ...formData, lama_angsuran: e.target.value })}
@@ -749,6 +749,7 @@ export default function PinjamanPage() {
                       </td>
                       <td className="px-6 py-4 text-center">
                         <div className="flex justify-center gap-2 items-center">
+                          {/* Tombol Angsur: hanya jika ada sisa pokok */}
                           {(item.status === 'BELUM_LUNAS' && sisaPokok > 0) && (
                             <Button
                               variant="outline"
@@ -766,6 +767,26 @@ export default function PinjamanPage() {
                               title="Bayar Angsuran"
                             >
                               <HandCoins size={16} className="mr-1" /> Angsur
+                            </Button>
+                          )}
+                          {/* Tombol Input Iuran/Simpanan: jika pinjaman = 0 */}
+                          {Number(item.jumlah_pinjaman) === 0 && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-orange-600 border-orange-400 hover:bg-orange-50 px-2"
+                              onClick={() => {
+                                setSelectedPinjaman(item);
+                                setEditAngsuranId(null);
+                                setAngsuranData({ ...angsuranData, angsuran_pokok: "0" });
+                                setShowAngsuran(true);
+                                setShowForm(false);
+                                setShowDetail(false);
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }}
+                              title="Input Iuran / Simpanan"
+                            >
+                              <HandCoins size={16} className="mr-1" /> Iuran/Simpanan
                             </Button>
                           )}
                           <Button
@@ -810,7 +831,8 @@ export default function PinjamanPage() {
               let sudahAngsur = item.angsuran.length;
               let totalTerbayar = item.angsuran.reduce((acc: number, a: any) => acc + Number(a.angsuran_pokok), 0);
               let sisaPokok = Number(item.jumlah_pinjaman) - totalTerbayar;
-              let isLunas = sisaPokok <= 0 || item.status === 'LUNAS';
+              // Jika jumlah_pinjaman = 0, jangan dianggap LUNAS agar bisa input iuran/simpanan
+              let isLunas = Number(item.jumlah_pinjaman) > 0 && (sisaPokok <= 0 || item.status === 'LUNAS');
 
               return (
                 <div key={item.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm relative">
@@ -853,7 +875,8 @@ export default function PinjamanPage() {
                         </p>
                       </div>
                     </div>
-                    {!isLunas && (
+                    {/* Tombol Angsur: hanya jika ada sisa pokok */}
+                    {!isLunas && Number(item.jumlah_pinjaman) > 0 && (
                       <div className="col-span-2 mt-2">
                         <Button
                           variant="outline"
@@ -870,6 +893,27 @@ export default function PinjamanPage() {
                           }}
                         >
                           <HandCoins size={16} className="mr-2" /> Bayar Angsuran
+                        </Button>
+                      </div>
+                    )}
+                    {/* Tombol Input Iuran/Simpanan: jika pinjaman = 0 */}
+                    {Number(item.jumlah_pinjaman) === 0 && (
+                      <div className="col-span-2 mt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full text-orange-600 border-orange-400 hover:bg-orange-50 mb-2"
+                          onClick={() => {
+                            setSelectedPinjaman(item);
+                            setEditAngsuranId(null);
+                            setAngsuranData({ ...angsuranData, angsuran_pokok: "0" });
+                            setShowAngsuran(true);
+                            setShowForm(false);
+                            setShowDetail(false);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                        >
+                          <HandCoins size={16} className="mr-2" /> Input Iuran / Simpanan
                         </Button>
                       </div>
                     )}

@@ -55,8 +55,12 @@ export async function POST(req: Request) {
     // Parse kelompokId to Int (form select mengirim sebagai String)
     const parsedKelompokId = kelompokId ? parseInt(kelompokId) : null;
 
-    if (!parsedKelompokId || isNaN(parsedKelompokId) || !nama_peminjam || !tanggal_pinjam || !jumlah_pinjaman || !lama_angsuran) {
+    if (!parsedKelompokId || isNaN(parsedKelompokId) || !nama_peminjam || !tanggal_pinjam || jumlah_pinjaman === undefined || jumlah_pinjaman === null || lama_angsuran === undefined || lama_angsuran === null) {
       return NextResponse.json({ error: "Data pinjaman tidak lengkap" }, { status: 400 });
+    }
+
+    if (Number(jumlah_pinjaman) < 0 || Number(lama_angsuran) < 0) {
+      return NextResponse.json({ error: "Jumlah pinjaman dan lama angsuran tidak boleh negatif" }, { status: 400 });
     }
 
     const newPinjaman = await prisma.pinjaman.create({
