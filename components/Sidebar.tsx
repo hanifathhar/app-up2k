@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import logoPic from "@/public/favicon.png";
 
 interface SidebarProps {
   sidebarOpen: boolean;
@@ -173,9 +174,13 @@ export default function Sidebar({
                 <div>
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-lg overflow-hidden">
-                      <span className="text-red-600 font-black text-xl">
-                        UP
-                      </span>
+                      <Image
+                        src={logoPic}
+                        alt="Logo UP2K"
+                        width={48}
+                        height={48}
+                        className="object-contain"
+                      />
                     </div>
 
                     <div>
