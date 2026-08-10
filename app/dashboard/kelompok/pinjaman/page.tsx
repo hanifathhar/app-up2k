@@ -552,7 +552,7 @@ export default function PinjamanPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700">Angsuran Pokok (Rp)</label>
               <input
-                type="number" required min="1"
+                type="number" required min="0"
                 className="mt-1 block w-full p-2 border border-gray-300 rounded-md bg-white"
                 value={angsuranData.angsuran_pokok}
                 onChange={e => setAngsuranData({ ...angsuranData, angsuran_pokok: e.target.value })}

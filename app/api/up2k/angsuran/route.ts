@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     const parsedPinjamanId = parseInt(pinjamanId);
     const parsedAngsuranPokok = Number(angsuran_pokok);
 
-    if (isNaN(parsedPinjamanId) || isNaN(parsedAngsuranPokok) || parsedAngsuranPokok <= 0) {
+    if (isNaN(parsedPinjamanId) || isNaN(parsedAngsuranPokok) || parsedAngsuranPokok < 0) {
       return NextResponse.json({ error: "Nominal angsuran tidak valid" }, { status: 400 });
     }
 

@@ -42,11 +42,11 @@ export default function Header({
 
           <div>
             <h1 className="font-bold text-xl text-red-700">
-              {user?.level === 'admin' ? 'Aplikasi UP2K' : user?.kelompok?.nama_kelompok || 'Berhepeng SMART'}
+              {user?.level === 'admin' ? 'Sistem Manajemen Administrasi, Rekap dan Tracking' : user?.kelompok?.nama_kelompok || 'Sistem Manajemen Administrasi, Rekap dan Tracking'}
             </h1>
 
             <p className="text-xs text-gray-500 hidden md:block">
-              Sistem Manajemen Administrasi, Rekap dan Tracking
+              Desa Sugi Kecamatan Marancar
             </p>
           </div>
         </div>
